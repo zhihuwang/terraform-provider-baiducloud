@@ -13,4 +13,5 @@ const (
 	RegionSuZhou    = Region("su")
 	RegionGuangZhou = Region("gz")
 	RegionWuHan     = Region("fwh")
+	RegionBaoDing   = Region("bd")
 )

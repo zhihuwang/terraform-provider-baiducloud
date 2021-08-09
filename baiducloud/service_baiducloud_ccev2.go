@@ -183,6 +183,161 @@ func resourceCCEv2BLB() *schema.Resource {
 	}
 }
 
+func resourceCCEv2InstanceGroupSpec() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"cce_instance_group_id": {
+				Type:        schema.TypeString,
+				Description: "Instance group ID",
+				Optional:    true,
+				Computed:    true,
+			},
+			"instance_group_name": {
+				Type:        schema.TypeString,
+				Description: "Instance group Name",
+				Optional:    true,
+				Computed:    true,
+			},
+			"clean_policy": {
+				Type:         schema.TypeString,
+				Description:  "clean policy",
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice(RuntimeTypePermitted, false),
+			},
+			"shrink_policy": {
+				Type:        schema.TypeString,
+				Description: "shrink policy",
+				Optional:    true,
+				Computed:    true,
+			},
+			"replicas": {
+				Type:        schema.TypeInt,
+				Description: "replicas of this Instance group",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cluster_id": {
+				Type:        schema.TypeString,
+				Description: "Cluster ID of this Instance group",
+				Optional:    true,
+				Computed:    true,
+			},
+			"cluster_role": {
+				Type:         schema.TypeString,
+				Description:  "Cluster Role of Instance group, Master or Nodes. Available Value: [master, node].",
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice(ClusterRolePermitted, false),
+			},
+			"update_policy": {
+				Type:        schema.TypeString,
+				Description: "update policy of Instance Group",
+				Optional:    true,
+				Computed:    true,
+			},
+			"machine_type": {
+				Type:         schema.TypeString,
+				Description:  "Machine Type. Available Value: [BCC, BBC, Metal].",
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice(MachineTypePermitted, false),
+			},
+			"instance_type": {
+				Type:         schema.TypeString,
+				Description:  "Instance Type Available Value: [N1, N2, N3, N4, N5, C1, C2, S1, G1, F1].",
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.StringInSlice(BCCInstanceTypePermitted, false),
+			},
+			"bbc_option": {
+				Type:        schema.TypeList,
+				Description: "BBC Option",
+				Optional:    true,
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2BBCOption(),
+			},
+			"vpc_config": {
+				Type:        schema.TypeList,
+				Description: "VPC Config",
+				Optional:    true,
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2VPCConfig(),
+			},
+			"instance_resource": {
+				Type:        schema.TypeList,
+				Description: "Instance Resource Config",
+				Optional:    true,
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2InstanceResource(),
+			},
+			"image_id": {
+				Type:        schema.TypeString,
+				Description: "Image ID",
+				Optional:    true,
+				Computed:    true,
+			},
+			"instance_os": {
+				Type:        schema.TypeList,
+				Description: "OS Config of the instance",
+				Optional:    true,
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2InstanceOS(),
+			},
+			"deploy_custom_config": {
+				Type:        schema.TypeList,
+				Description: "Deploy Custom Option",
+				Optional:    true,
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2DeployCustomConfig(),
+			},
+			"labels": {
+				Type:        schema.TypeMap,
+				Description: "Labels List",
+				Optional:    true,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"cce_instance_priority": {
+				Type:        schema.TypeInt,
+				Description: "Priority of this instance.",
+				Computed:    true,
+			},
+			"autoscaler_enabled": {
+				Type:        schema.TypeBool,
+				Description: "autoscaler enabled",
+				Optional:    true,
+				Computed:    true,
+			},
+			"autoscaler_max_replicas": {
+				Type:        schema.TypeInt,
+				Description: "autoscaler enabled",
+				Optional:    true,
+				Computed:    true,
+			},
+			"autoscaler_min_replicas": {
+				Type:        schema.TypeInt,
+				Description: "autoscaler enabled",
+				Optional:    true,
+				Computed:    true,
+			},
+			"scaling_group_priority": {
+				Type:        schema.TypeInt,
+				Description: "autoscaler enabled",
+				Optional:    true,
+				Computed:    true,
+			},
+		},
+	}
+}
+
 func resourceCCEv2InstanceSpec() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -416,6 +571,48 @@ func resourceCCEv2InstanceStatus() *schema.Resource {
 			"machine_status": {
 				Type:        schema.TypeString,
 				Description: "Machine status",
+				Computed:    true,
+			},
+		},
+	}
+}
+
+func resourceCCEv2InstanceGroupStatus() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"paused_reason": {
+				Type:        schema.TypeString,
+				Description: "paused reason",
+				Computed:    true,
+			},
+			"ready_replicas": {
+				Type:        schema.TypeInt,
+				Description: "ready replicas",
+				Computed:    true,
+			},
+			"paused": {
+				Type:        schema.TypeBool,
+				Description: "is paused",
+				Computed:    true,
+			},
+			"actual_replicas": {
+				Type:        schema.TypeInt,
+				Description: "actual replicas",
+				Computed:    true,
+			},
+			"deleting_replicas": {
+				Type:        schema.TypeInt,
+				Description: "deleting Replicas",
+				Computed:    true,
+			},
+			"other_replicas": {
+				Type:        schema.TypeInt,
+				Description: "other replicas",
+				Computed:    true,
+			},
+			"scaling_replicas": {
+				Type:        schema.TypeInt,
+				Description: "scaling replicas",
 				Computed:    true,
 			},
 		},
@@ -812,6 +1009,32 @@ func resourceCCEv2Instance() *schema.Resource {
 			"updated_at": {
 				Type:        schema.TypeString,
 				Description: "Instance update time",
+				Computed:    true,
+			},
+		},
+	}
+}
+
+func resourceCCEv2InstanceGroup() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"group_spec": {
+				Type:        schema.TypeList,
+				Description: "Group specification",
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2InstanceGroupSpec(),
+			},
+			"group_status": {
+				Type:        schema.TypeList,
+				Description: "Group status",
+				Computed:    true,
+				MaxItems:    1,
+				Elem:        resourceCCEv2InstanceGroupStatus(),
+			},
+			"created_at": {
+				Type:        schema.TypeString,
+				Description: "Instance create time",
 				Computed:    true,
 			},
 		},
@@ -1289,6 +1512,58 @@ func buildGetInstancesOfInstanceGroupArgs(d *schema.ResourceData) (*ccev2.ListIn
 	}
 	return args, nil
 }
+func getAvailableInstanceGroup(instanceGroups []*ccev2.InstanceGroup, role ccev2types.ClusterRole, left_nodes int) []*ccev2.InstanceGroup {
+	targetInstanceGroups := make([]*ccev2.InstanceGroup, 0)
+	//区分是master机器还是node机器
+	for _, instanceGroup := range instanceGroups {
+		if instanceGroup.Spec.ClusterRole == role && instanceGroup.Spec.Replicas+left_nodes <= 200 {
+			targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
+		}
+	}
+	return targetInstanceGroups
+}
+
+func convertInstanceGroupFromJsonToMap(instanceGroups []*ccev2.InstanceGroup, role ccev2types.ClusterRole, left_nodes int) ([]interface{}, error) {
+	targetInstanceGroups := make([]*ccev2.InstanceGroup, 0)
+	resultInstanceGroups := make([]interface{}, 0, len(targetInstanceGroups))
+	if len(instanceGroups) == 0 {
+		return resultInstanceGroups, nil
+	}
+
+	//区分是master机器还是node机器
+	for _, instanceGroup := range instanceGroups {
+		if instanceGroup.Spec.ClusterRole == role && instanceGroup.Spec.Replicas+left_nodes <= 200 {
+			targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
+		}
+	}
+
+	for _, instanceGroup := range targetInstanceGroups {
+
+		instanceMap := make(map[string]interface{})
+
+		if instanceGroup.Spec != nil {
+			spec, err := convertInstanceGroupSpecFromJsonToMap(instanceGroup.Spec)
+			if err != nil {
+				return nil, err
+			}
+			instanceMap["group_spec"] = spec
+		}
+
+		if instanceGroup.Status != nil {
+			status, err := convertInstanceGroupStatusFromJsonToMap(instanceGroup.Status)
+			if err != nil {
+				return nil, err
+			}
+			instanceMap["group_status"] = status
+		}
+
+		instanceMap["created_at"] = instanceGroup.CreatedAt.String()
+
+		resultInstanceGroups = append(resultInstanceGroups, instanceMap)
+	}
+
+	return resultInstanceGroups, nil
+}
 
 //===================Convert系函数用于将SDK返回值转换成.tfstate参数===================
 //Tips: 对于.tfstate中存在的字段，但是sdk返回数据中不包含的字段，将不会在传递给.tfstate的map中设置此值，进而terrafrom会跳过更新此字段的状态，使其维持原样不变
@@ -1334,6 +1609,101 @@ func convertInstanceFromJsonToMap(instances []*ccev2.Instance, role ccev2types.C
 	}
 
 	return resultInstances, nil
+}
+
+func convertInstanceGroupSpecFromJsonToMap(spec *ccev2.InstanceGroupSpec) ([]interface{}, error) {
+	resultSpec := make([]interface{}, 0)
+	if spec == nil {
+		return resultSpec, nil
+	}
+	specMap := make(map[string]interface{})
+
+	if spec.CCEInstanceGroupID != "" {
+		specMap["cce_instance_group_id"] = spec.CCEInstanceGroupID
+	}
+	if spec.ClusterRole != "" {
+		specMap["cluster_role"] = spec.ClusterRole
+	}
+	if spec.InstanceGroupName != "" {
+		specMap["instance_group_name"] = spec.InstanceGroupName
+	}
+	if spec.CleanPolicy != "" {
+		specMap["clean_policy"] = spec.CleanPolicy
+	}
+	specMap["replicas"] = spec.Replicas
+	if spec.ShrinkPolicy != "" {
+		specMap["shrink_policy"] = spec.ShrinkPolicy
+	}
+	if spec.ClusterID != "" {
+		specMap["cluster_id"] = spec.ClusterID
+	}
+
+	if spec.ClusterAutoscalerSpec != nil {
+		specMap["autoscaler_enabled"] = spec.ClusterAutoscalerSpec.Enabled
+		specMap["autoscaler_max_replicas"] = spec.ClusterAutoscalerSpec.MaxReplicas
+		specMap["autoscaler_min_replicas"] = spec.ClusterAutoscalerSpec.MinReplicas
+		specMap["scaling_group_priority"] = spec.ClusterAutoscalerSpec.ScalingGroupPriority
+
+	}
+
+	if spec.UpdatePolicy != "" {
+		specMap["update_policy"] = spec.UpdatePolicy
+	}
+
+	if spec.InstanceTemplate.MachineType != "" {
+		specMap["machine_type"] = spec.InstanceTemplate.MachineType
+	}
+	if spec.InstanceTemplate.InstanceType != "" {
+		specMap["instance_type"] = spec.InstanceTemplate.InstanceType
+	}
+	if spec.InstanceTemplate.ImageID != "" {
+		specMap["image_id"] = spec.InstanceTemplate.ImageID
+	}
+	specMap["cce_instance_priority"] = spec.InstanceTemplate.CCEInstancePriority
+
+	if spec.InstanceTemplate.BBCOption != nil {
+		option, err := convertBBCOptionFromJsonToMap(spec.InstanceTemplate.BBCOption)
+		if err != nil {
+			return nil, err
+		}
+		specMap["bbc_option"] = option
+	}
+
+	if spec.InstanceTemplate.VPCConfig != (ccev2types.VPCConfig{}) {
+		config, err := convertVPCConfigFromJsonToMap(&spec.InstanceTemplate.VPCConfig)
+		if err != nil {
+			return nil, err
+		}
+		specMap["vpc_config"] = config
+	}
+
+	option, err := convertDeployCustomConfigFromJsonToMap(&spec.InstanceTemplate.DeployCustomConfig)
+	if err != nil {
+		return nil, err
+	}
+	specMap["deploy_custom_config"] = option
+
+	instanceResource, err := convertInstanceResourceFromJsonToMap(&spec.InstanceTemplate.InstanceResource)
+	if err != nil {
+		return nil, err
+	}
+	specMap["instance_resource"] = instanceResource
+
+	if spec.InstanceTemplate.InstanceOS != (ccev2types.InstanceOS{}) {
+		option, err := convertInstanceOSFromJsonToMap(&spec.InstanceTemplate.InstanceOS)
+		if err != nil {
+			return nil, err
+		}
+		specMap["instance_os"] = option
+	}
+
+	if spec.InstanceTemplate.Labels != nil {
+		specMap["labels"] = spec.InstanceTemplate.Labels
+	}
+
+	resultSpec = append(resultSpec, specMap)
+
+	return resultSpec, nil
 }
 
 func convertInstanceSpecFromJsonToMap(spec *ccev2types.InstanceSpec) ([]interface{}, error) {
@@ -1735,6 +2105,26 @@ func convertEIPOptionFromJsonToMap(option *ccev2types.EIPOption) ([]interface{},
 
 	result = append(result, optionMap)
 	return result, nil
+}
+
+func convertInstanceGroupStatusFromJsonToMap(status *ccev2.InstanceGroupStatus) ([]interface{}, error) {
+	resultStatus := make([]interface{}, 0)
+	if status == nil {
+		return resultStatus, nil
+	}
+
+	statusMap := make(map[string]interface{})
+
+	statusMap["ready_replicas"] = status.ReadyReplicas
+
+	if status.Pause != nil {
+		statusMap["paused"] = status.Pause.Paused
+		statusMap["paused_reason"] = status.Pause.Reason
+	}
+
+	resultStatus = append(resultStatus, statusMap)
+
+	return resultStatus, nil
 }
 
 func convertInstanceStatusFromJsonToMap(status *ccev2.InstanceStatus) ([]interface{}, error) {

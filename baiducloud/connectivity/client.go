@@ -22,7 +22,6 @@ import (
 	"github.com/baidubce/bce-sdk-go/services/sts"
 	"github.com/baidubce/bce-sdk-go/services/sts/api"
 	"github.com/baidubce/bce-sdk-go/services/vpc"
-	"github.com/baidubce/bce-sdk-go/util/log"
 )
 
 // BaiduClient of BaiduCloud
@@ -99,10 +98,6 @@ func (c *Config) Client() (*BaiduClient, error) {
 }
 
 func (client *BaiduClient) WithCommonClient(serviceCode ServiceCode) *BaiduClient {
-	log.SetLogLevel(log.DEBUG)
-	log.SetLogHandler(log.NONE)
-	//log.SetLogDir(LogDir)
-
 	region := client.config.Region
 	if region == "" {
 		region = DefaultRegion

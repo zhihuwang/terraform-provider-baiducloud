@@ -39,6 +39,16 @@ const (
 	DefaultBJRegionRdsEndPoint = "rds.bj.baidubce.com"
 	DefaultBJRegionDtsEndPoint = "rds.bj.baidubce.com"
 
+	DefaultBDRegionBccEndPoint = "bcc.bd.baidubce.com"
+	DefaultBDRegionEipEndPoint = "eip.bd.baidubce.com"
+	DefaultBDRegionBlbEndPoint = "blb.bd.baidubce.com"
+	DefaultBDRegionBosEndPoint = "bd.bcebos.com"
+	DefaultBDRegionCfcEndPoint = "cfc.bd.baidubce.com"
+	DefaultBDRegionCceEndPoint = "cce.bd.baidubce.com"
+	DefaultBDRegionScsEndPoint = "redis.bd.baidubce.com"
+	DefaultBDRegionRdsEndPoint = "rds.bd.baidubce.com"
+	DefaultBDRegionDtsEndPoint = "rds.bd.baidubce.com"
+
 	DefaultGZRegionBccEndPoint = "bcc.gz.baidubce.com"
 	DefaultGZRegionEipEndPoint = "eip.gz.baidubce.com"
 	DefaultGZRegionBlbEndPoint = "blb.gz.baidubce.com"
@@ -74,6 +84,7 @@ var (
 	// Default Region Endpoints
 	DefaultRegionEndpoints = map[Region]map[ServiceCode]string{
 		RegionBeiJing:   RegionBJEndpoints,
+		RegionBaoDing:   RegionBDEndpoints,
 		RegionGuangZhou: RegionGZEndpoints,
 		RegionSuZhou:    RegionSUEndpoints,
 		RegionWuHan:     RegionFWHEndpoints,
@@ -93,6 +104,23 @@ var (
 		SCSCode:    DefaultBJRegionScsEndPoint,
 		RDSCode:    DefaultBJRegionRdsEndPoint,
 		DTSCode:    DefaultBJRegionDtsEndPoint,
+		IAMCode:    DefaultIAMEndPoint,
+	}
+
+	// Region BJ Service Endpoints
+	RegionBDEndpoints = map[ServiceCode]string{
+		BCCCode:    DefaultBDRegionBccEndPoint,
+		VPCCode:    DefaultBDRegionBccEndPoint,
+		EIPCode:    DefaultBDRegionEipEndPoint,
+		APPBLBCode: DefaultBDRegionBlbEndPoint,
+		BOSCode:    DefaultBDRegionBosEndPoint,
+		CERTCode:   DefaultCERTEndPoint,
+		CFCCode:    DefaultBDRegionCfcEndPoint,
+		CCECode:    DefaultBDRegionCceEndPoint,
+		CCEv2Code:  DefaultBDRegionCceEndPoint,
+		SCSCode:    DefaultBDRegionScsEndPoint,
+		RDSCode:    DefaultBDRegionRdsEndPoint,
+		DTSCode:    DefaultBDRegionDtsEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
