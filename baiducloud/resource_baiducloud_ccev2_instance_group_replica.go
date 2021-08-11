@@ -108,11 +108,11 @@ func getInstanceGroup(cluster_id string, left_nodes int, client *connectivity.Ba
 	return groups, nil
 }
 func setRepica(d *schema.ResourceData, meta interface{}, client *connectivity.BaiduClient) error {
-	clusterId := d.Id()
+	clusterId := d.Get("cluster_id")
 	if change, ok := d.GetOk("replicas_change"); ok {
 		if change.(int) != 0 {
 			args := &ccev2.UpdateInstanceGroupReplicasArgs{
-				ClusterID: clusterId,
+				ClusterID: clusterId.(string),
 				Request: &ccev2.UpdateInstanceGroupReplicasRequest{
 					DeleteInstance: true,
 					DeleteOption: &types.DeleteOption{
@@ -122,7 +122,7 @@ func setRepica(d *schema.ResourceData, meta interface{}, client *connectivity.Ba
 				},
 			}
 			action := "Update CCEv2 Cluster Instance Group Repica "
-			groups, err := getInstanceGroup(clusterId, change.(int), client)
+			groups, err := getInstanceGroup(clusterId.(string), change.(int), client)
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
 			}
@@ -171,8 +171,8 @@ func setRepica(d *schema.ResourceData, meta interface{}, client *connectivity.Ba
 func resourceBaiduCloudCCEv2InstanceGroupReplicaCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.BaiduClient)
 	clusterId := d.Get("cluster_id")
-	setRepica(d, meta, client)
 	d.SetId(clusterId.(string))
+	setRepica(d, meta, client)
 	return resourceBaiduCloudCCEv2InstanceGroupReplicaRead(d, meta)
 }
 
