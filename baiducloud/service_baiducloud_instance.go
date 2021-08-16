@@ -1,6 +1,8 @@
 package baiducloud
 
 import (
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/baidubce/bce-sdk-go/services/bcc"
@@ -259,5 +261,68 @@ func (s *BccService) StopInstance(instanceID string, timeout time.Duration) erro
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_instance", action, BCESDKGoERROR)
 	}
 
+	return nil
+}
+
+func (s *BccService) ChangeToPrepaid(instanceId string, duration int) error {
+	action := "Change instance payment method" + instanceId
+
+	raw, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
+		return bccClient.ChangeToPrepaid(instanceId, &api.ChangeToPrepaidRequest{
+			Duration:    duration,
+			RelationCds: true,
+		})
+	})
+	if err != nil {
+		log.Printf("%s failed: %s", action, err.Error())
+	}
+	res := raw.(*api.ChangeToPrepaidResponse)
+	log.Printf("ChangeToPrepaid with order %s", res.OrderId)
+	return err
+}
+
+func (s *BccService) EnableAutoRenew(instanceId string, renewTimeUnit string, renewTime int) error {
+	action := "Enable AutoRenew for bcc instance " + instanceId
+	_, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
+		return nil, bccClient.BatchCreateAutoRenewRules(&api.BccCreateAutoRenewArgs{
+			InstanceId:    instanceId,
+			RenewTimeUnit: renewTimeUnit,
+			RenewTime:     renewTime,
+		})
+	})
+	if err != nil {
+		log.Printf("%s failed: %s", action, err.Error())
+	}
+	return err
+}
+func (s *BccService) EnablePrepaidAndAutoRenew(instanceId string) error {
+	// change payment_method
+	model, err := s.GetInstanceDetail(instanceId)
+	if err != nil {
+		return err
+	}
+	if model.Status == api.InstanceStatusRunning || model.Status == api.InstanceStatusStopped {
+		if model.PaymentTiming != "Prepaid" {
+			err := s.ChangeToPrepaid(model.InstanceId, 12)
+			if err != nil {
+				log.Printf("change bcc instance[%s] to prepaid failed:%s", model.InstanceId, err.Error())
+				return fmt.Errorf("change bcc instance[%s] to prepaid failed:%s", model.InstanceId, err.Error())
+			} else {
+				log.Printf("change bcc instance[%s] to prepaid successfully", model.InstanceId)
+			}
+		}
+	} else {
+		log.Printf("unstable instance[%s] status [%s] for enable auto renew", model.InstanceId, model.Status)
+		return fmt.Errorf("unstable instance[%s] status [%s] for enable auto renew", model.InstanceId, model.Status)
+	}
+	if err == nil {
+		err = s.EnableAutoRenew(model.InstanceId, "year", 1)
+		if err != nil {
+			log.Printf("enable auto renew for bcc instance[%s] failed:%s", model.InstanceId, err.Error())
+			return fmt.Errorf("enable auto renew for bcc instance[%s] failed:%s", model.InstanceId, err.Error())
+		} else {
+			log.Printf("enable auto renew for bcc instance[%s] successfully", model.InstanceId)
+		}
+	}
 	return nil
 }

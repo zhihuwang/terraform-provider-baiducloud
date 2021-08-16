@@ -75,6 +75,7 @@ func dataSourceBaiduCloudCCEv2InstanceGroupInstances() *schema.Resource {
 func dataSourceBaiduCloudCCEv2InstanceGroupInstancesRead(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*connectivity.BaiduClient)
+	ccev2Service := Ccev2Service{client}
 	args := &ccev2.ListInstanceByInstanceGroupIDArgs{}
 
 	if value, ok := d.GetOk("cluster_id"); ok && value.(string) != "" {
@@ -99,22 +100,11 @@ func dataSourceBaiduCloudCCEv2InstanceGroupInstancesRead(d *schema.ResourceData,
 	}
 
 	action := "Get CCEv2 InstanceGroup Nodes Cluster ID:" + args.ClusterID + " InstanceGroup ID:" + args.InstanceGroupID
-	raw, err := client.WithCCEv2Client(func(client *ccev2.Client) (i interface{}, e error) {
-		return client.ListInstancesByInstanceGroupID(args)
-	})
+	response, err := ccev2Service.GetInstanceGroupInstances(args)
 	if err != nil {
-		log.Printf("List InstanceGroup Instances Error:" + err.Error())
+		log.Printf("Get Instance Group instances Fail" + err.Error())
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group_instances", action, BCESDKGoERROR)
 	}
-	addDebug(action, raw)
-
-	response := raw.(*ccev2.ListInstancesByInstanceGroupIDResponse)
-	if response.Page.List == nil {
-		err := errors.New("instance list is nil")
-		log.Printf("List InstanceGroup Instances Error:" + err.Error())
-		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group_instances", action, BCESDKGoERROR)
-	}
-
 	nodes, err := convertInstanceFromJsonToMap(response.Page.List, types.ClusterRoleNode)
 	if err != nil {
 		log.Printf("Get Instance Group Follower Nodes Fail" + err.Error())

@@ -17,6 +17,7 @@ package baiducloud
 
 import (
 	"regexp"
+	"sort"
 
 	"github.com/baidubce/bce-sdk-go/services/cce"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -297,7 +298,9 @@ func dataSourceBaiduCloudCCEClusterNodesRead(d *schema.ResourceData, meta interf
 	} else {
 		resultNodeList = append(resultNodeList, nodeListWithZone...)
 	}
-
+	sort.Slice(resultNodeList[:], func(i, j int) bool {
+		return resultNodeList[i].CreateTime.After(resultNodeList[j].CreateTime)
+	})
 	nodesMap := make([]map[string]interface{}, 0, len(resultNodeList))
 	for _, node := range resultNodeList {
 		nodesMap = append(nodesMap, map[string]interface{}{

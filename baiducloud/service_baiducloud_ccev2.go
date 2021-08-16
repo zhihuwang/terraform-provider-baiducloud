@@ -1,10 +1,13 @@
 package baiducloud
 
 import (
+	"errors"
 	"log"
+	"sort"
 
 	bccapi "github.com/baidubce/bce-sdk-go/services/bcc/api"
 	ccev2 "github.com/baidubce/bce-sdk-go/services/cce/v2"
+	"github.com/baidubce/bce-sdk-go/services/cce/v2/types"
 	ccev2types "github.com/baidubce/bce-sdk-go/services/cce/v2/types"
 	"github.com/baidubce/bce-sdk-go/services/vpc"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -44,6 +47,68 @@ func (s *Ccev2Service) ClusterStateRefreshCCEv2(clusterId string, failState []cc
 		addDebug(action, raw)
 		return result, string(result.Cluster.Status.ClusterPhase), nil
 	}
+}
+
+func (s *Ccev2Service) GetInstanceGroupList(cluster_id string, left_nodes int) ([]*ccev2.InstanceGroup, error) {
+	args := &ccev2.ListInstanceGroupsArgs{}
+	args.ClusterID = cluster_id
+	listOpts := &ccev2.InstanceGroupListOption{}
+	listOpts.PageSize = 200
+	args.ListOption = listOpts
+
+	action := "Get CCEv2 InstanceGroups by Cluster ID:" + args.ClusterID
+	raw, err := s.client.WithCCEv2Client(func(client *ccev2.Client) (i interface{}, e error) {
+		return client.ListInstanceGroups(args)
+	})
+	if err != nil {
+		log.Printf("List InstanceGroup Instances Error:" + err.Error())
+		return nil, WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group_repica", action, BCESDKGoERROR)
+	}
+	addDebug(action, raw)
+	response := raw.(*ccev2.ListInstanceGroupResponse)
+	if response.Page.List == nil {
+		err := errors.New("instance list is nil")
+		log.Printf("List InstanceGroup Instances Error:" + err.Error())
+		return nil, WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_groups", action, BCESDKGoERROR)
+	}
+	groups := getAvailableInstanceGroup(response.Page.List, types.ClusterRoleNode, left_nodes)
+	return groups, nil
+}
+func (s *Ccev2Service) GetInstanceGroupDetail(clusterId string, instanceGroupId string) (*ccev2.InstanceGroup, error) {
+	argsGetInstanceGroup := &ccev2.GetInstanceGroupArgs{
+		ClusterID:       clusterId,
+		InstanceGroupID: instanceGroupId,
+	}
+	rawInstanceGroupResp, err := s.client.WithCCEv2Client(func(client *ccev2.Client) (interface{}, error) {
+		return client.GetInstanceGroup(argsGetInstanceGroup)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return rawInstanceGroupResp.(*ccev2.GetInstanceGroupResponse).InstanceGroup, err
+}
+
+func (s *Ccev2Service) GetInstanceGroupInstances(args *ccev2.ListInstanceByInstanceGroupIDArgs) (*ccev2.ListInstancesByInstanceGroupIDResponse, error) {
+
+	raw, err := s.client.WithCCEv2Client(func(client *ccev2.Client) (i interface{}, e error) {
+		return client.ListInstancesByInstanceGroupID(args)
+	})
+	if err != nil {
+		log.Printf("List InstanceGroup Instances Error:" + err.Error())
+		return nil, err
+	}
+	action := "Get CCEv2 InstanceGroup Nodes Cluster ID:" + args.ClusterID + " InstanceGroup ID:" + args.InstanceGroupID
+	addDebug(action, raw)
+	response := raw.(*ccev2.ListInstancesByInstanceGroupIDResponse)
+	if response.Page.List == nil {
+		err := errors.New("instance list is nil")
+		log.Printf("List InstanceGroup Instances Error:" + err.Error())
+		return nil, err
+	}
+	sort.Slice(response.Page.List[:], func(i, j int) bool {
+		return response.Page.List[i].CreatedAt.After(response.Page.List[j].CreatedAt)
+	})
+	return response, err
 }
 
 func resourceCCEv2ClusterSpec() *schema.Resource {
@@ -1520,6 +1585,10 @@ func getAvailableInstanceGroup(instanceGroups []*ccev2.InstanceGroup, role ccev2
 			targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
 		}
 	}
+	// sort with createdAt asc
+	sort.Slice(targetInstanceGroups[:], func(i, j int) bool {
+		return targetInstanceGroups[i].CreatedAt.Before(targetInstanceGroups[j].CreatedAt)
+	})
 	return targetInstanceGroups
 }
 

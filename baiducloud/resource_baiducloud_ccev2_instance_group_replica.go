@@ -15,10 +15,15 @@ resource "baiducloud_ccev2_instance_group_replica" "ccev2_instance_group_replica
 package baiducloud
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"log"
+	"strings"
+	"text/template"
 	"time"
 
+	"github.com/baidubce/bce-sdk-go/services/cce"
 	ccev2 "github.com/baidubce/bce-sdk-go/services/cce/v2"
 	"github.com/baidubce/bce-sdk-go/services/cce/v2/types"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -52,8 +57,20 @@ func resourceBaiduCloudCCEv2InstanceGroupReplica() *schema.Resource {
 			"replicas_change": {
 				Type:        schema.TypeInt,
 				Description: "Number of instances in this Instance Group",
+				Required:    true,
+			},
+			"tpl": {
+				Type:        schema.TypeString,
+				Description: "the params template for baidu cce v1 scale up",
 				Optional:    true,
-				Default:     0,
+			},
+			"vars": {
+				Type:        schema.TypeMap,
+				Description: "variables used in params template",
+				Optional:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"total": {
 				Type:        schema.TypeInt,
@@ -82,33 +99,114 @@ func resourceBaiduCloudCCEv2InstanceGroupReplica() *schema.Resource {
 		},
 	}
 }
-func getInstanceGroup(cluster_id string, left_nodes int, client *connectivity.BaiduClient) ([]*ccev2.InstanceGroup, error) {
-	args := &ccev2.ListInstanceGroupsArgs{}
-	args.ClusterID = cluster_id
-	listOpts := &ccev2.InstanceGroupListOption{}
-	listOpts.PageSize = 200
-	args.ListOption = listOpts
 
-	action := "Get CCEv2 InstanceGroups by Cluster ID:" + args.ClusterID
-	raw, err := client.WithCCEv2Client(func(client *ccev2.Client) (i interface{}, e error) {
-		return client.ListInstanceGroups(args)
-	})
-	if err != nil {
-		log.Printf("List InstanceGroup Instances Error:" + err.Error())
-		return nil, WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group_repica", action, BCESDKGoERROR)
+func setRepicaV1(d *schema.ResourceData, meta interface{}, client *connectivity.BaiduClient) error {
+	action := "scale up  CCE v1 Cluster"
+	clusterId := d.Get("cluster_id").(string)
+	bccService := BccService{client}
+	cceService := CceService{client}
+	if !strings.HasPrefix(clusterId, "c-") {
+		return nil
 	}
-	addDebug(action, raw)
-	response := raw.(*ccev2.ListInstanceGroupResponse)
-	if response.Page.List == nil {
-		err := errors.New("instance list is nil")
-		log.Printf("List InstanceGroup Instances Error:" + err.Error())
-		return nil, WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_groups", action, BCESDKGoERROR)
+	if change, ok := d.GetOk("replicas_change"); ok {
+		if change.(int) <= 0 {
+			return WrapErrorf(errors.New("replicas_change should be great than 0"), DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, "[Parameters Error]")
+		}
+		cceResponse, err := cceService.GetCceV1Cluster(clusterId, client)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, BCESDKGoERROR)
+		}
+		slaveVmCount := cceResponse.SlaveVmCount
+		log.Printf("SlaveVmCount=%d", slaveVmCount)
+		tpl, tplok := d.GetOk("tpl")
+		vars, varok := d.GetOk("vars")
+		if !tplok || !varok {
+			return WrapErrorf(errors.New("tpl and vars is required for baidu cce v1"), DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, BCESDKGoERROR)
+		}
+		tplstr := tpl.(string)
+		textTpl, err := template.New("params").Delims("[[", "]]").Parse(tplstr)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, "[Template Parse error]")
+		}
+		var tmplBytes bytes.Buffer
+		data := map[string]interface{}{}
+		data["vars"] = vars
+		err = textTpl.Execute(&tmplBytes, data)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, "[Template Execute error]")
+		}
+		log.Printf("BccConfig=%s", tmplBytes.String())
+		var args cce.ScalingUpArgs
+		err = json.Unmarshal(tmplBytes.Bytes(), &args)
+		jsonStr, err1 := json.Marshal(&args)
+		log.Printf("ScalingUpArgs=%s, err=%v", string(jsonStr), err1)
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, "[Unmarshal ScalingUpArgs failed]"+tmplBytes.String())
+		}
+		raw, err := client.WithCCEClient(func(client *cce.Client) (i interface{}, e error) {
+			return client.ScalingUp(&args)
+		})
+		addDebug(action, raw)
+
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, BCESDKGoERROR)
+		}
+
+		log.Printf("ScalingUpResult=%v", raw)
+		//waiting all instance in instance group are ready
+		createTimeOutTime := d.Timeout(schema.TimeoutCreate)
+		loopsCount := createTimeOutTime.Microseconds() / ((10 * time.Second).Microseconds())
+		var i int64
+		newNodeSize := change.(int)
+		for i = 1; i <= loopsCount; i++ {
+			time.Sleep(5 * time.Second)
+			cceResponseRefresh, err := cceService.GetCceV1Cluster(clusterId, client)
+			if err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, BCESDKGoERROR)
+			}
+			currentSlaveVmCount := cceResponseRefresh.SlaveVmCount
+			log.Printf("currentSlaveVmCount=%d", currentSlaveVmCount)
+			log.Printf("targetSlaveVmCount=%d", slaveVmCount+change.(int))
+			if currentSlaveVmCount == slaveVmCount+newNodeSize {
+				listNodeResult, err := cceService.GetCceV1Nodes(clusterId, client)
+				if err == nil {
+					finished := 0
+					var m int
+					for m = 0; m < newNodeSize; m++ {
+						err := bccService.EnablePrepaidAndAutoRenew(listNodeResult.Nodes[m].InstanceShortId)
+						if err == nil {
+							finished++
+						} else {
+							log.Printf("EnablePrepaidAndAutoRenew for bcc instance[%s] failed:%s", listNodeResult.Nodes[m].InstanceShortId, err.Error())
+						}
+					}
+					if finished == newNodeSize {
+						break
+					}
+				} else {
+					log.Printf("get cce v1 nodes failed:%s", err.Error())
+				}
+
+			}
+			if i == loopsCount {
+				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
+			}
+		}
+		d.Set("replicas_change", 0)
+	} else {
+		return errors.New("replicas_change is invalid")
 	}
-	groups := getAvailableInstanceGroup(response.Page.List, types.ClusterRoleNode, left_nodes)
-	return groups, nil
+	return nil
+
 }
-func setRepica(d *schema.ResourceData, meta interface{}, client *connectivity.BaiduClient) error {
+
+func setRepicaV2(d *schema.ResourceData, meta interface{}, client *connectivity.BaiduClient) error {
 	clusterId := d.Get("cluster_id")
+	ccev2Service := Ccev2Service{client}
+	bccService := BccService{client}
+	if !strings.HasPrefix(clusterId.(string), "cce-") {
+		return nil
+	}
 	if change, ok := d.GetOk("replicas_change"); ok {
 		if change.(int) != 0 {
 			args := &ccev2.UpdateInstanceGroupReplicasArgs{
@@ -122,7 +220,7 @@ func setRepica(d *schema.ResourceData, meta interface{}, client *connectivity.Ba
 				},
 			}
 			action := "Update CCEv2 Cluster Instance Group Repica "
-			groups, err := getInstanceGroup(clusterId.(string), change.(int), client)
+			groups, err := ccev2Service.GetInstanceGroupList(clusterId.(string), change.(int))
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
 			}
@@ -142,21 +240,38 @@ func setRepica(d *schema.ResourceData, meta interface{}, client *connectivity.Ba
 			createTimeOutTime := d.Timeout(schema.TimeoutCreate)
 			loopsCount := createTimeOutTime.Microseconds() / ((10 * time.Second).Microseconds())
 			var i int64
+			newNodeSize := change.(int)
 			for i = 1; i <= loopsCount; i++ {
 				time.Sleep(5 * time.Second)
-				argsGetInstanceGroup := &ccev2.GetInstanceGroupArgs{
-					ClusterID:       args.ClusterID,
-					InstanceGroupID: args.InstanceGroupID,
-				}
-				rawInstanceGroupResp, err := client.WithCCEv2Client(func(client *ccev2.Client) (interface{}, error) {
-					return client.GetInstanceGroup(argsGetInstanceGroup)
-				})
+				instanceGroupResp, err := ccev2Service.GetInstanceGroupDetail(args.ClusterID, args.InstanceGroupID)
 				if err != nil {
 					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
 				}
-				instanceGroupResp := rawInstanceGroupResp.(*ccev2.GetInstanceGroupResponse)
-				if instanceGroupResp.InstanceGroup.Status.ReadyReplicas == instanceGroupResp.InstanceGroup.Spec.Replicas {
-					break
+				if instanceGroupResp.Status.ReadyReplicas == instanceGroupResp.Spec.Replicas {
+					instancesResponse, err := ccev2Service.GetInstanceGroupInstances(&ccev2.ListInstanceByInstanceGroupIDArgs{
+						ClusterID:       args.ClusterID,
+						InstanceGroupID: args.InstanceGroupID,
+					})
+					if err != nil {
+						return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
+					}
+					if err == nil {
+						finished := 0
+						var m int
+						for m = 0; m < newNodeSize; m++ {
+							err := bccService.EnablePrepaidAndAutoRenew(instancesResponse.Page.List[m].Status.Machine.InstanceID)
+							if err == nil {
+								finished++
+							} else {
+								log.Printf("EnablePrepaidAndAutoRenew for bcc instance[%s] failed:%s", instancesResponse.Page.List[m].Status.Machine.InstanceID, err.Error())
+							}
+						}
+						if finished == newNodeSize {
+							break
+						}
+					} else {
+						log.Printf("Get InstanceGroup Instances [%s]->[%s] failed:%s", args.ClusterID, args.InstanceGroupID, err.Error())
+					}
 				}
 				if i == loopsCount {
 					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
@@ -172,15 +287,22 @@ func resourceBaiduCloudCCEv2InstanceGroupReplicaCreate(d *schema.ResourceData, m
 	client := meta.(*connectivity.BaiduClient)
 	clusterId := d.Get("cluster_id")
 	d.SetId(clusterId.(string))
-	setRepica(d, meta, client)
+	if !strings.HasPrefix(clusterId.(string), "c-") && !strings.HasPrefix(clusterId.(string), "cce-") {
+		return errors.New("invalid cluster_id:" + clusterId.(string))
+	}
+	err1 := setRepicaV1(d, meta, client)
+	if err1 != nil {
+		return err1
+	}
+	err2 := setRepicaV2(d, meta, client)
+	if err2 != nil {
+		return err2
+	}
+
 	return resourceBaiduCloudCCEv2InstanceGroupReplicaRead(d, meta)
 }
-
-func resourceBaiduCloudCCEv2InstanceGroupReplicaRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*connectivity.BaiduClient)
-	clusterId := d.Id()
+func readV2(clusterId string, d *schema.ResourceData, client *connectivity.BaiduClient) error {
 	action := "Get CCEv2 Cluster " + clusterId
-
 	//1.Get Status of the Cluster
 	raw, err := client.WithCCEv2Client(func(client *ccev2.Client) (interface{}, error) {
 		return client.GetCluster(clusterId)
@@ -216,13 +338,57 @@ func resourceBaiduCloudCCEv2InstanceGroupReplicaRead(d *schema.ResourceData, met
 		d.Set("ready_replicas", instanceGroupResp.InstanceGroup.Status.ReadyReplicas)
 		d.Set("replicas", instanceGroupResp.InstanceGroup.Spec.Replicas)
 	}
-
+	return nil
+}
+func readV1(clusterId string, d *schema.ResourceData, client *connectivity.BaiduClient) error {
+	action := "Get CCEv1 Cluster " + clusterId
+	cceService := CceService{client}
+	//1.Get Status of the Cluster
+	result, err := cceService.GetCceV1Cluster(clusterId, client)
+	if err != nil {
+		if NotFoundError(err) {
+			log.Printf("Cluster Not Found. Set Resource ID to Empty.")
+			d.SetId("") //Resource Not Found, make the ID of resource to empty to delete it in state file.
+			return nil
+		}
+		log.Printf("Get Cluster Error:" + err.Error())
+		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, BCESDKGoERROR)
+	}
+	if result == nil {
+		err := Error("Response is nil")
+		log.Printf("Get Cluster Error:" + err.Error())
+		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev1_cluster_replica", action, BCESDKGoERROR)
+	}
+	d.Set("total", result.SlaveVmCount)
+	d.Set("ready_replicas", result.SlaveVmCount)
+	d.Set("replicas", result.SlaveVmCount)
+	return nil
+}
+func resourceBaiduCloudCCEv2InstanceGroupReplicaRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*connectivity.BaiduClient)
+	clusterId := d.Id()
+	if !strings.HasPrefix(clusterId, "cce-") {
+		readV2(clusterId, d, client)
+	} else {
+		readV1(clusterId, d, client)
+	}
 	return nil
 }
 
 func resourceBaiduCloudCCEv2InstanceGroupReplicaUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*connectivity.BaiduClient)
-	setRepica(d, meta, client)
+	clusterId := d.Get("cluster_id")
+	if !strings.HasPrefix(clusterId.(string), "c-") && !strings.HasPrefix(clusterId.(string), "cce-") {
+		return errors.New("invalid cluster_id:" + clusterId.(string))
+	}
+	err1 := setRepicaV1(d, meta, client)
+	if err1 != nil {
+		return err1
+	}
+	err2 := setRepicaV2(d, meta, client)
+	if err2 != nil {
+		return err2
+	}
 	return resourceBaiduCloudCCEv2InstanceGroupReplicaRead(d, meta)
 }
 
