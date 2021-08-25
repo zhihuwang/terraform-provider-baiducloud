@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"text/template"
@@ -170,18 +171,32 @@ func setRepicaV1(d *schema.ResourceData, meta interface{}, client *connectivity.
 			if currentSlaveVmCount == slaveVmCount+newNodeSize {
 				listNodeResult, err := cceService.GetCceV1Nodes(clusterId, client)
 				if err == nil {
-					finished := 0
 					var m int
+					var failedNodes []string
+					var finishedNodes []string
 					for m = 0; m < newNodeSize; m++ {
-						err := bccService.EnablePrepaidAndAutoRenew(listNodeResult.Nodes[m].InstanceShortId)
-						if err == nil {
-							finished++
-						} else {
-							log.Printf("EnablePrepaidAndAutoRenew for bcc instance[%s] failed:%s", listNodeResult.Nodes[m].InstanceShortId, err.Error())
+						if listNodeResult.Nodes[m].Status == "CREATE_FAILED" {
+							failedNodes = append(failedNodes, listNodeResult.Nodes[m].InstanceShortId)
+						} else if listNodeResult.Nodes[m].Status == "RUNNING" {
+							finishedNodes = append(finishedNodes, listNodeResult.Nodes[m].InstanceShortId)
 						}
 					}
-					if finished == newNodeSize {
-						break
+					if len(failedNodes) > 0 {
+						return fmt.Errorf("CCE v1 Node CREATE_FAILED:%v", failedNodes)
+					}
+					finished := 0
+					if len(finishedNodes) == newNodeSize {
+						for m = 0; m < newNodeSize; m++ {
+							err := bccService.EnablePrepaidAndAutoRenew(listNodeResult.Nodes[m].InstanceShortId)
+							if err == nil {
+								finished++
+							} else {
+								log.Printf("EnablePrepaidAndAutoRenew for bcc instance[%s] failed:%s", listNodeResult.Nodes[m].InstanceShortId, err.Error())
+							}
+						}
+						if finished == newNodeSize {
+							break
+						}
 					}
 				} else {
 					log.Printf("get cce v1 nodes failed:%s", err.Error())
