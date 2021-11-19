@@ -126,6 +126,11 @@ func resourceBaiduCloudCCEv2Cluster() *schema.Resource {
 				Computed:    true,
 				Elem:        resourceCCEv2Instance(),
 			},
+			"kube_config": {
+				Type:        schema.TypeString,
+				Description: "kube_config of the cluster",
+				Computed:    true,
+			},
 			"nodes": {
 				Type:        schema.TypeList,
 				Description: "Slave machines of the cluster",
@@ -255,6 +260,17 @@ func resourceBaiduCloudCCEv2ClusterRead(d *schema.ResourceData, meta interface{}
 		log.Printf("Get Cluster Instance List Error" + err.Error())
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster", action, BCESDKGoERROR)
 	}
+	// kubeconfig
+	kubeConfigArgs := &ccev2.GetKubeConfigArgs{
+		ClusterID:      clusterId,
+		KubeConfigType: "vpc",
+	}
+	resp, err := client.GetKubeConfig(kubeConfigArgs)
+	if err != nil {
+		log.Printf("Get Cluster KubeConfig Error:" + err.Error())
+		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster", action, BCESDKGoERROR)
+	}
+	d.Set("kube_config", resp.KubeConfig)
 	listInstanceResponse := listInstancesRaw.(*ccev2.ListInstancesResponse)
 	if listInstanceResponse == nil {
 		err := Error("ListInstancesResponse is nil")

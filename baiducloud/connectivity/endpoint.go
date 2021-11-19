@@ -17,6 +17,7 @@ const (
 	VPCCode    = ServiceCode("VPC")
 	EIPCode    = ServiceCode("EIP")
 	APPBLBCode = ServiceCode("APPBLB")
+	BLBCode    = ServiceCode("BLB")
 	BOSCode    = ServiceCode("BOS")
 	CERTCode   = ServiceCode("CERT")
 	CFCCode    = ServiceCode("CFC")

@@ -9,6 +9,7 @@ import (
 	"github.com/baidubce/bce-sdk-go/services/appblb"
 	"github.com/baidubce/bce-sdk-go/services/bbc"
 	"github.com/baidubce/bce-sdk-go/services/bcc"
+	"github.com/baidubce/bce-sdk-go/services/blb"
 	"github.com/baidubce/bce-sdk-go/services/bos"
 	"github.com/baidubce/bce-sdk-go/services/cce"
 	ccev2 "github.com/baidubce/bce-sdk-go/services/cce/v2"
@@ -37,6 +38,7 @@ type BaiduClient struct {
 	vpcConn    *vpc.Client
 	eipConn    *eip.Client
 	appBlbConn *appblb.Client
+	blbConn    *blb.Client
 	bosConn    *bos.Client
 	certConn   *cert.Client
 	cfcConn    *cfc.Client
@@ -217,6 +219,26 @@ func (client *BaiduClient) WithAppBLBClient(do func(*appblb.Client) (interface{}
 	}
 
 	return do(client.appBlbConn)
+}
+
+func (client *BaiduClient) WithBLBClient(do func(*blb.Client) (interface{}, error)) (interface{}, error) {
+	goSdkMutex.Lock()
+	defer goSdkMutex.Unlock()
+
+	// Initialize the APPBLB client if necessary
+	if client.appBlbConn == nil {
+		client.WithCommonClient(BLBCode)
+		blbClient, err := blb.NewClient(client.Credentials.AccessKeyId, client.Credentials.SecretAccessKey, client.Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		client.WithProxy(blbClient.Config)
+		blbClient.Config.Credentials = client.Credentials
+
+		client.blbConn = blbClient
+	}
+
+	return do(client.blbConn)
 }
 
 func (client *BaiduClient) WithBosClient(do func(*bos.Client) (interface{}, error)) (interface{}, error) {
