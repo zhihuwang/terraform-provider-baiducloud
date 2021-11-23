@@ -19,18 +19,6 @@ resource "baiducloud_blb_listener" "default" {
   protocol      = "HTTP"
   scheduler     = "RoundRobin"
   keep_session  = true
-
-  policies {
-    description         = "acceptance test"
-    app_server_group_id = "sg-11bd8054"
-    backend_port        = 70
-    priority            = 50
-
-    rule_list {
-      key   = "host"
-      value = "baidu.com"
-    }
-  }
 }
 
 [HTTPS] Listener
@@ -100,6 +88,13 @@ func resourceBaiduCloudBLBListener() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validatePort(),
 			},
+			"backend_port": {
+				Type:         schema.TypeInt,
+				Description:  "backend port, range from 1-65535",
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validatePort(),
+			},
 			"protocol": {
 				Type:         schema.TypeString,
 				Description:  "Listening protocol, support TCP/UDP/HTTP/HTTPS/SSL",
@@ -125,6 +120,50 @@ func resourceBaiduCloudBLBListener() *schema.Resource {
 					}
 					return true
 				},
+			},
+			"health_check_timeout_in_second": {
+				Type:        schema.TypeInt,
+				Description: "health_check_timeout_in_second",
+				Optional:    true,
+			},
+			"health_check_interval": {
+				Type:        schema.TypeInt,
+				Description: "health_check_interval",
+				Optional:    true,
+			},
+			"unhealthy_threshold": {
+				Type:        schema.TypeInt,
+				Description: "unhealthy_threshold",
+				Optional:    true,
+			},
+			"healthy_threshold": {
+				Type:        schema.TypeInt,
+				Description: "healthy_threshold",
+				Optional:    true,
+			},
+			// udp only
+			"health_check_string": {
+				Type:        schema.TypeString,
+				Description: "health_check_string",
+				Optional:    true,
+			},
+			// http or https
+			"health_check_port": {
+				Type:        schema.TypeInt,
+				Description: "health_check_port",
+				Optional:    true,
+			},
+			// http or https
+			"health_check_uri": {
+				Type:        schema.TypeInt,
+				Description: "health_check_port",
+				Optional:    true,
+			},
+			// http or https
+			"health_check_normal_status": {
+				Type:        schema.TypeInt,
+				Description: "health_check_port",
+				Optional:    true,
 			},
 			// http & https
 			"keep_session": {
@@ -267,78 +306,6 @@ func resourceBaiduCloudBLBListener() *schema.Resource {
 				},
 				DiffSuppressFunc: appBlbProtocolTCPUDPHTTPSuppressFunc,
 			},
-			"policies": {
-				Type:        schema.TypeSet,
-				Description: "Listener's policy",
-				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:        schema.TypeString,
-							Description: "Policy's id",
-							Computed:    true,
-						},
-						"description": {
-							Type:        schema.TypeString,
-							Description: "Policy's description",
-							Optional:    true,
-						},
-						"port_type": {
-							Type:        schema.TypeString,
-							Description: "Policy bind port protocol type",
-							Computed:    true,
-						},
-						"app_server_group_id": {
-							Type:        schema.TypeString,
-							Description: "Policy bind server group id",
-							Required:    true,
-						},
-						"app_server_group_name": {
-							Type:        schema.TypeString,
-							Description: "Policy bind server group name",
-							Computed:    true,
-						},
-						"frontend_port": {
-							Type:        schema.TypeInt,
-							Description: "Frontend port",
-							Computed:    true,
-						},
-						"backend_port": {
-							Type:         schema.TypeInt,
-							Description:  "Backend port",
-							Required:     true,
-							ValidateFunc: validatePort(),
-						},
-						"priority": {
-							Type:         schema.TypeInt,
-							Description:  "Policy priority, support in [1, 32768]",
-							Required:     true,
-							ValidateFunc: validation.IntBetween(1, 32768),
-						},
-						"rule_list": {
-							Type:        schema.TypeSet,
-							Description: "Policy rule list",
-							Optional:    true,
-							Computed:    true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"key": {
-										Type:         schema.TypeString,
-										Description:  "Rule key",
-										Required:     true,
-										ValidateFunc: validation.StringInSlice([]string{"*", "host", "uri"}, false),
-									},
-									"value": {
-										Type:        schema.TypeString,
-										Description: "Rule value",
-										Required:    true,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 }
@@ -423,6 +390,7 @@ func resourceBaiduCloudBLBListenerRead(d *schema.ResourceData, meta interface{})
 		d.Set("server_timeout", listenerMeta.ServerTimeout)
 		d.Set("redirect_port", listenerMeta.RedirectPort)
 		d.Set("listener_port", listenerMeta.ListenerPort)
+		d.Set("backend_port", listenerMeta.BackendPort)
 	case HTTPS:
 		listenerMeta := raw.(*blb.HTTPSListenerModel)
 		d.Set("scheduler", listenerMeta.Scheduler)
@@ -436,6 +404,7 @@ func resourceBaiduCloudBLBListenerRead(d *schema.ResourceData, meta interface{})
 		d.Set("dual_auth", listenerMeta.DualAuth)
 		d.Set("client_cert_ids", listenerMeta.ClientCertIds)
 		d.Set("listener_port", listenerMeta.ListenerPort)
+		d.Set("backend_port", listenerMeta.BackendPort)
 	case SSL:
 		listenerMeta := raw.(*blb.SSLListenerModel)
 		d.Set("scheduler", listenerMeta.Scheduler)
@@ -445,13 +414,18 @@ func resourceBaiduCloudBLBListenerRead(d *schema.ResourceData, meta interface{})
 		d.Set("dual_auth", listenerMeta.DualAuth)
 		d.Set("client_cert_ids", listenerMeta.ClientCertIds)
 		d.Set("listener_port", listenerMeta.ListenerPort)
+		d.Set("backend_port", listenerMeta.BackendPort)
 	case TCP:
 		listenerMeta := raw.(*blb.TCPListenerModel)
 		d.Set("scheduler", listenerMeta.Scheduler)
 		d.Set("tcp_session_timeout", listenerMeta.TcpSessionTimeout)
+		d.Set("backend_port", listenerMeta.BackendPort)
+		d.Set("listener_port", listenerMeta.ListenerPort)
 	case UDP:
 		listenerMeta := raw.(*blb.UDPListenerModel)
 		d.Set("scheduler", listenerMeta.Scheduler)
+		d.Set("backend_port", listenerMeta.BackendPort)
+		d.Set("listener_port", listenerMeta.ListenerPort)
 	default:
 		return WrapError(fmt.Errorf("unsupport listener type"))
 	}
@@ -545,18 +519,52 @@ func buildBaiduCloudCreateblbListenerArgs(d *schema.ResourceData, meta interface
 
 	switch protocol {
 	case TCP:
-		return &blb.CreateTCPListenerArgs{
-			TcpSessionTimeout: d.Get("tcp_session_timeout").(int),
-			ListenerPort:      uint16(d.Get("listener_port").(int)),
-			Scheduler:         d.Get("scheduler").(string),
-			ClientToken:       buildClientToken(),
-		}, nil
+		args := &blb.CreateTCPListenerArgs{
+			ListenerPort: uint16(d.Get("listener_port").(int)),
+			BackendPort:  uint16(d.Get("backend_port").(int)),
+			Scheduler:    d.Get("scheduler").(string),
+			ClientToken:  buildClientToken(),
+		}
+		if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+			args.HealthCheckTimeoutInSecond = v.(int)
+		}
+		if v, ok := d.GetOk("health_check_interval"); ok {
+			args.HealthCheckInterval = v.(int)
+		}
+		if v, ok := d.GetOk("unhealthy_threshold"); ok {
+			args.UnhealthyThreshold = v.(int)
+		}
+		if v, ok := d.GetOk("healthy_threshold"); ok {
+			args.HealthyThreshold = v.(int)
+		}
+		if v, ok := d.GetOk("tcp_session_timeout"); ok {
+			args.TcpSessionTimeout = v.(int)
+		}
+
+		return args, nil
 	case UDP:
-		return &blb.CreateUDPListenerArgs{
+		args := &blb.CreateUDPListenerArgs{
 			ListenerPort: uint16(d.Get("listener_port").(int)),
 			Scheduler:    d.Get("scheduler").(string),
 			ClientToken:  buildClientToken(),
-		}, nil
+			BackendPort:  uint16(d.Get("backend_port").(int)),
+		}
+		if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+			args.HealthCheckTimeoutInSecond = v.(int)
+		}
+		if v, ok := d.GetOk("health_check_interval"); ok {
+			args.HealthCheckInterval = v.(int)
+		}
+		if v, ok := d.GetOk("unhealthy_threshold"); ok {
+			args.UnhealthyThreshold = v.(int)
+		}
+		if v, ok := d.GetOk("healthy_threshold"); ok {
+			args.HealthyThreshold = v.(int)
+		}
+		if v, ok := d.GetOk("health_check_string"); ok {
+			args.HealthCheckString = v.(string)
+		}
+		return args, nil
 	case HTTP:
 		return buildBaiduCloudCreateblbHTTPListenerArgs(d, meta)
 	case HTTPS:
@@ -573,10 +581,32 @@ func buildBaiduCloudCreateblbHTTPListenerArgs(d *schema.ResourceData, meta inter
 	result := &blb.CreateHTTPListenerArgs{
 		ClientToken:  buildClientToken(),
 		ListenerPort: uint16(d.Get("listener_port").(int)),
+		BackendPort:  uint16(d.Get("backend_port").(int)),
 		Scheduler:    d.Get("scheduler").(string),
 	}
 	if result.Scheduler != "RoundRobin" && result.Scheduler != "LeastConnection" {
 		return nil, fmt.Errorf("HTTP Listener scheduler only support [RoundRobin, LeastConnection], but you set: %s", result.Scheduler)
+	}
+	if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+		result.HealthCheckTimeoutInSecond = v.(int)
+	}
+	if v, ok := d.GetOk("health_check_interval"); ok {
+		result.HealthCheckInterval = v.(int)
+	}
+	if v, ok := d.GetOk("unhealthy_threshold"); ok {
+		result.UnhealthyThreshold = v.(int)
+	}
+	if v, ok := d.GetOk("healthy_threshold"); ok {
+		result.HealthyThreshold = v.(int)
+	}
+	if v, ok := d.GetOk("health_check_uri"); ok {
+		result.HealthCheckURI = v.(string)
+	}
+	if v, ok := d.GetOk("health_check_port"); ok {
+		result.HealthCheckPort = uint16(v.(int))
+	}
+	if v, ok := d.GetOk("health_check_normal_status"); ok {
+		result.HealthCheckNormalStatus = v.(string)
 	}
 
 	if v, ok := d.GetOk("keep_session"); ok {
@@ -618,6 +648,28 @@ func buildBaiduCloudCreateblbHTTPSListenerArgs(d *schema.ResourceData, meta inte
 	}
 	if result.Scheduler != "RoundRobin" && result.Scheduler != "LeastConnection" {
 		return nil, fmt.Errorf("HTTPS Listener scheduler only support [RoundRobin, LeastConnection], but you set: %s", result.Scheduler)
+	}
+
+	if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+		result.HealthCheckTimeoutInSecond = v.(int)
+	}
+	if v, ok := d.GetOk("health_check_interval"); ok {
+		result.HealthCheckInterval = v.(int)
+	}
+	if v, ok := d.GetOk("unhealthy_threshold"); ok {
+		result.UnhealthyThreshold = v.(int)
+	}
+	if v, ok := d.GetOk("healthy_threshold"); ok {
+		result.HealthyThreshold = v.(int)
+	}
+	if v, ok := d.GetOk("health_check_uri"); ok {
+		result.HealthCheckURI = v.(string)
+	}
+	if v, ok := d.GetOk("health_check_port"); ok {
+		result.HealthCheckPort = uint16(v.(int))
+	}
+	if v, ok := d.GetOk("health_check_normal_status"); ok {
+		result.HealthCheckNormalStatus = v.(string)
 	}
 
 	if v, ok := d.GetOk("keep_session"); ok {
@@ -684,9 +736,21 @@ func buildBaiduCloudCreateblbSSLListenerArgs(d *schema.ResourceData, meta interf
 	result := &blb.CreateSSLListenerArgs{
 		ClientToken:  buildClientToken(),
 		ListenerPort: uint16(d.Get("listener_port").(int)),
+		BackendPort:  uint16(d.Get("backend_port").(int)),
 		Scheduler:    d.Get("scheduler").(string),
 	}
-
+	if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+		result.HealthCheckTimeoutInSecond = v.(int)
+	}
+	if v, ok := d.GetOk("health_check_interval"); ok {
+		result.HealthCheckInterval = v.(int)
+	}
+	if v, ok := d.GetOk("unhealthy_threshold"); ok {
+		result.UnhealthyThreshold = v.(int)
+	}
+	if v, ok := d.GetOk("healthy_threshold"); ok {
+		result.HealthyThreshold = v.(int)
+	}
 	if v, ok := d.GetOk("cert_ids"); ok {
 		for _, id := range v.(*schema.Set).List() {
 			result.CertIds = append(result.CertIds, id.(string))
@@ -728,22 +792,56 @@ func buildBaiduCloudUpdateBLBListenerArgs(d *schema.ResourceData, meta interface
 
 	switch protocol {
 	case TCP:
-		if d.HasChange("scheduler") || d.HasChange("tcp_session_timeout") {
-			return true, &blb.UpdateTCPListenerArgs{
+		if d.HasChange("scheduler") || d.HasChange("tcp_session_timeout") || d.HasChange("health_check_timeout_in_second") || d.HasChange("health_check_interval") || d.HasChange("tcp_session_timeout") || d.HasChange("unhealthy_threshold") || d.HasChange("healthy_threshold") {
+			args := &blb.UpdateTCPListenerArgs{
 				TcpSessionTimeout: d.Get("tcp_session_timeout").(int),
 				ListenerPort:      uint16(d.Get("listener_port").(int)),
+				BackendPort:       uint16(d.Get("backend_port").(int)),
 				Scheduler:         d.Get("scheduler").(string),
 				ClientToken:       buildClientToken(),
-			}, nil
+			}
+			if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+				args.HealthCheckTimeoutInSecond = v.(int)
+			}
+			if v, ok := d.GetOk("health_check_interval"); ok {
+				args.HealthCheckInterval = v.(int)
+			}
+			if v, ok := d.GetOk("unhealthy_threshold"); ok {
+				args.UnhealthyThreshold = v.(int)
+			}
+			if v, ok := d.GetOk("healthy_threshold"); ok {
+				args.HealthyThreshold = v.(int)
+			}
+			if v, ok := d.GetOk("tcp_session_timeout"); ok {
+				args.TcpSessionTimeout = v.(int)
+			}
+			return true, args, nil
 		}
 		return false, nil, nil
 	case UDP:
-		if d.HasChange("scheduler") {
-			return true, &blb.UpdateUDPListenerArgs{
+		if d.HasChange("scheduler") || d.HasChange("listener_port") || d.HasChange("backend_port") || d.HasChange("health_check_timeout_in_second") || d.HasChange("health_check_interval") || d.HasChange("unhealthy_threshold") || d.HasChange("healthy_threshold") || d.HasChange("health_check_string") {
+			args := &blb.UpdateUDPListenerArgs{
 				ListenerPort: uint16(d.Get("listener_port").(int)),
 				Scheduler:    d.Get("scheduler").(string),
+				BackendPort:  uint16(d.Get("backend_port").(int)),
 				ClientToken:  buildClientToken(),
-			}, nil
+			}
+			if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+				args.HealthCheckTimeoutInSecond = v.(int)
+			}
+			if v, ok := d.GetOk("health_check_interval"); ok {
+				args.HealthCheckInterval = v.(int)
+			}
+			if v, ok := d.GetOk("unhealthy_threshold"); ok {
+				args.UnhealthyThreshold = v.(int)
+			}
+			if v, ok := d.GetOk("healthy_threshold"); ok {
+				args.HealthyThreshold = v.(int)
+			}
+			if v, ok := d.GetOk("health_check_string"); ok {
+				args.HealthCheckString = v.(string)
+			}
+			return true, args, nil
 		}
 		return false, nil, nil
 	case HTTP:
@@ -763,6 +861,7 @@ func buildBaiduCloudUpdateBLBHTTPListenerArgs(d *schema.ResourceData, meta inter
 	result := &blb.UpdateHTTPListenerArgs{
 		ClientToken:  buildClientToken(),
 		ListenerPort: uint16(d.Get("listener_port").(int)),
+		BackendPort:  uint16(d.Get("backend_port").(int)),
 		Scheduler:    d.Get("scheduler").(string),
 	}
 
@@ -770,7 +869,41 @@ func buildBaiduCloudUpdateBLBHTTPListenerArgs(d *schema.ResourceData, meta inter
 	if result.Scheduler != "RoundRobin" && result.Scheduler != "LeastConnection" {
 		return false, nil, fmt.Errorf("HTTP Listener scheduler only support [RoundRobin, LeastConnection], but you set: %s", result.Scheduler)
 	}
-
+	if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+		if !update {
+			result.HealthCheckTimeoutInSecond = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("health_check_interval"); ok {
+		if !update {
+			result.HealthCheckInterval = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("unhealthy_threshold"); ok {
+		if !update {
+			result.UnhealthyThreshold = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("healthy_threshold"); ok {
+		if !update {
+			result.HealthyThreshold = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("health_check_uri"); ok {
+		if !update {
+			result.HealthCheckURI = v.(string)
+		}
+	}
+	if v, ok := d.GetOk("health_check_port"); ok {
+		if !update {
+			result.HealthCheckPort = uint16(v.(int))
+		}
+	}
+	if v, ok := d.GetOk("health_check_normal_status"); ok {
+		if !update {
+			result.HealthCheckNormalStatus = v.(string)
+		}
+	}
 	if v, ok := d.GetOk("keep_session"); ok {
 		if !update {
 			update = d.HasChange("keep_session")
@@ -841,6 +974,42 @@ func buildBaiduCloudUpdateBLBHTTPSListenerArgs(d *schema.ResourceData, meta inte
 	update = d.HasChange("scheduler")
 	if result.Scheduler != "RoundRobin" && result.Scheduler != "LeastConnection" {
 		return false, nil, fmt.Errorf("HTTPS Listener scheduler only support [RoundRobin, LeastConnection], but you set: %s", result.Scheduler)
+	}
+
+	if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+		if !update {
+			result.HealthCheckTimeoutInSecond = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("health_check_interval"); ok {
+		if !update {
+			result.HealthCheckInterval = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("unhealthy_threshold"); ok {
+		if !update {
+			result.UnhealthyThreshold = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("healthy_threshold"); ok {
+		if !update {
+			result.HealthyThreshold = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("health_check_uri"); ok {
+		if !update {
+			result.HealthCheckURI = v.(string)
+		}
+	}
+	if v, ok := d.GetOk("health_check_port"); ok {
+		if !update {
+			result.HealthCheckPort = uint16(v.(int))
+		}
+	}
+	if v, ok := d.GetOk("health_check_normal_status"); ok {
+		if !update {
+			result.HealthCheckNormalStatus = v.(string)
+		}
 	}
 
 	if v, ok := d.GetOk("keep_session"); ok {
@@ -941,6 +1110,26 @@ func buildBaiduCloudUpdateBLBSSLListenerArgs(d *schema.ResourceData, meta interf
 	}
 
 	update = d.HasChange("scheduler")
+	if v, ok := d.GetOk("health_check_timeout_in_second"); ok {
+		if !update {
+			result.HealthCheckTimeoutInSecond = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("health_check_interval"); ok {
+		if !update {
+			result.HealthCheckInterval = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("unhealthy_threshold"); ok {
+		if !update {
+			result.UnhealthyThreshold = v.(int)
+		}
+	}
+	if v, ok := d.GetOk("healthy_threshold"); ok {
+		if !update {
+			result.HealthyThreshold = v.(int)
+		}
+	}
 	if v, ok := d.GetOk("cert_ids"); ok {
 		if !update {
 			update = d.HasChange("cert_ids")

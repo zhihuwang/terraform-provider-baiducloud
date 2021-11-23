@@ -233,6 +233,7 @@ func Provider() terraform.ResourceProvider {
 			"baiducloud_appblb_listener":              resourceBaiduCloudAppBlbListener(),
 			"baiducloud_blb":                          resourceBaiduCloudBLB(),
 			"baiducloud_blb_listener":                 resourceBaiduCloudBLBListener(),
+			"baiducloud_blb_backend":                  resourceBaiduCloudBLBBackend(),
 			"baiducloud_bos_bucket":                   resourceBaiduCloudBosBucket(),
 			"baiducloud_bos_bucket_object":            resourceBaiduCloudBucketObject(),
 			"baiducloud_cert":                         resourceBaiduCloudCert(),
@@ -491,6 +492,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.ConfigEndpoints[connectivity.VPCCode] = strings.TrimSpace(endpoints["vpc"].(string))
 		config.ConfigEndpoints[connectivity.EIPCode] = strings.TrimSpace(endpoints["eip"].(string))
 		config.ConfigEndpoints[connectivity.APPBLBCode] = strings.TrimSpace(endpoints["appblb"].(string))
+		config.ConfigEndpoints[connectivity.BLBCode] = strings.TrimSpace(endpoints["appblb"].(string))
 		config.ConfigEndpoints[connectivity.BOSCode] = strings.TrimSpace(endpoints["bos"].(string))
 		config.ConfigEndpoints[connectivity.BOSCode] = strings.TrimSpace(endpoints["cfc"].(string))
 		config.ConfigEndpoints[connectivity.SCSCode] = strings.TrimSpace(endpoints["scs"].(string))

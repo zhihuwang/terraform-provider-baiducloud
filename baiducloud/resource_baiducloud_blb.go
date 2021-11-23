@@ -165,7 +165,7 @@ func resourceBaiduCloudBLBCreate(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_blb", action, BCESDKGoERROR)
 	}
-
+	time.Sleep(time.Duration(15) * time.Second)
 	stateConf := buildStateConf(
 		APPBLBProcessingStatus,
 		APPBLBAvailableStatus,
