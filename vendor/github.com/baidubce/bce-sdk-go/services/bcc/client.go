@@ -393,6 +393,25 @@ func (c *Client) ChangeInstancePass(instanceId string, args *api.ChangeInstanceP
 	return api.ChangeInstancePass(c, instanceId, body)
 }
 
+// ModifyDeletionProtection - Modify deletion protection of specified instance
+//
+// PARAMS:
+//     - instanceId: id of the instance
+//	   - args: the arguments to modify deletion protection, default 0 for deletable and 1 for deletion protection
+// RETURNS:
+//     - error: nil if success otherwise the specific error
+func (c *Client) ModifyDeletionProtection(instanceId string, args *api.DeletionProtectionArgs) error {
+	jsonBytes, jsonErr := json.Marshal(args)
+	if jsonErr != nil {
+		return jsonErr
+	}
+	body, err := bce.NewBodyFromBytes(jsonBytes)
+	if err != nil {
+		return err
+	}
+	return api.ModifyDeletionProtection(c, instanceId, body)
+}
+
 // ModifyInstanceAttribute - modify an instance's attribute
 //
 // PARAMS:
@@ -1618,6 +1637,16 @@ func (c *Client) BatchDeleteAutoRenewRules(args *api.BccDeleteAutoRenewArgs) err
 
 func (c *Client) DeleteInstanceIngorePayment(args *api.DeleteInstanceIngorePaymentArgs) (*api.DeleteInstanceResult, error) {
 	return api.DeleteInstanceIngorePayment(c, args)
+}
+
+// DeleteRecycledInstance - delete a recycled instance
+//
+// PARAMS:
+//     - instanceId: the specific instance ID
+// RETURNS:
+//     - error: nil if success otherwise the specific error
+func (c *Client) DeleteRecycledInstance(instanceId string) error {
+	return api.DeleteRecycledInstance(c, instanceId)
 }
 
 func (c *Client) ListInstanceByInstanceIds(args *api.ListInstanceByInstanceIdArgs) (*api.ListInstancesResult, error) {

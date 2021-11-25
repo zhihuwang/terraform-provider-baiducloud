@@ -39,6 +39,7 @@ const (
 	InstanceStatusError           		InstanceStatus = "Error"
 	InstanceStatusImageProcessing 		InstanceStatus = "ImageProcessing"
 	InstanceStatusChangeVpcProcessing   InstanceStatus = "ChangeVpc"
+	InstanceStatusRecycled           	InstanceStatus = "Recycled"
 )
 
 type ImageType string
@@ -229,6 +230,7 @@ type InstanceChangeSubnetArgs struct {
 type InstanceChangeVpcArgs struct {
 	InstanceId string `json:"instanceId"`
 	SubnetId   string `json:"subnetId"`
+	InternalIp   string `json:"internalIp"`
 	Reboot     bool   `json:"reboot"`
 }
 

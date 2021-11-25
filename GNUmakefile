@@ -13,6 +13,9 @@ tools:
 build: fmtcheck
 	go install
 
+package:
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 

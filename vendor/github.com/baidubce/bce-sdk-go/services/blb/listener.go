@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Baidu, Inc.
+ * Copyright 2020 Baidu, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -12,9 +12,9 @@
  * and limitations under the License.
  */
 
-// listener.go - the Application BLB Listener APIs definition supported by the APPBLB service
+// listener.go - the Normal BLB Listener APIs definition supported by the BLB service
 
-package appblb
+package blb
 
 import (
 	"fmt"
@@ -24,14 +24,14 @@ import (
 	"github.com/baidubce/bce-sdk-go/http"
 )
 
-// CreateAppTCPListener - create a TCP Listener
+// CreateTCPListener - create a TCP Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to create TCP Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) CreateAppTCPListener(blbId string, args *CreateAppTCPListenerArgs) error {
+func (c *Client) CreateTCPListener(blbId string, args *CreateTCPListenerArgs) error {
 	if args == nil {
 		return fmt.Errorf("unset args")
 	}
@@ -40,26 +40,30 @@ func (c *Client) CreateAppTCPListener(blbId string, args *CreateAppTCPListenerAr
 		return fmt.Errorf("unsupport listener port")
 	}
 
+	if args.BackendPort == 0 {
+		return fmt.Errorf("unsupport backend port")
+	}
+
 	if len(args.Scheduler) == 0 {
 		return fmt.Errorf("unset scheduler")
 	}
 
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.POST).
-		WithURL(getAppTCPListenerUri(blbId)).
+		WithURL(getTCPListenerUri(blbId)).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// CreateAppUDPListener - create a UDP Listener
+// CreateUDPListener - create a UDP Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to create UDP Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) CreateAppUDPListener(blbId string, args *CreateAppUDPListenerArgs) error {
+func (c *Client) CreateUDPListener(blbId string, args *CreateUDPListenerArgs) error {
 	if args == nil {
 		return fmt.Errorf("unset args")
 	}
@@ -68,32 +72,44 @@ func (c *Client) CreateAppUDPListener(blbId string, args *CreateAppUDPListenerAr
 		return fmt.Errorf("unsupport listener port")
 	}
 
+	if args.BackendPort == 0 {
+		return fmt.Errorf("unsupport backend port")
+	}
+
 	if len(args.Scheduler) == 0 {
 		return fmt.Errorf("unset scheduler")
 	}
 
+	if len(args.HealthCheckString) == 0 {
+		return fmt.Errorf("unset healthCheckString")
+	}
+
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.POST).
-		WithURL(getAppUDPListenerUri(blbId)).
+		WithURL(getUDPListenerUri(blbId)).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// CreateAppHTTPListener - create a HTTP Listener
+// CreateHTTPListener - create a HTTP Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to create HTTP Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) CreateAppHTTPListener(blbId string, args *CreateAppHTTPListenerArgs) error {
+func (c *Client) CreateHTTPListener(blbId string, args *CreateHTTPListenerArgs) error {
 	if args == nil {
 		return fmt.Errorf("unset args")
 	}
 
 	if args.ListenerPort == 0 {
 		return fmt.Errorf("unsupport listener port")
+	}
+
+	if args.BackendPort == 0 {
+		return fmt.Errorf("unsupport backend port")
 	}
 
 	if len(args.Scheduler) == 0 {
@@ -102,26 +118,30 @@ func (c *Client) CreateAppHTTPListener(blbId string, args *CreateAppHTTPListener
 
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.POST).
-		WithURL(getAppHTTPListenerUri(blbId)).
+		WithURL(getHTTPListenerUri(blbId)).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// CreateAppHTTPSListener - create a HTTPS Listener
+// CreateHTTPSListener - create a HTTPS Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to create HTTPS Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) CreateAppHTTPSListener(blbId string, args *CreateAppHTTPSListenerArgs) error {
+func (c *Client) CreateHTTPSListener(blbId string, args *CreateHTTPSListenerArgs) error {
 	if args == nil {
 		return fmt.Errorf("unset args")
 	}
 
 	if args.ListenerPort == 0 {
 		return fmt.Errorf("unsupport listener port")
+	}
+
+	if args.BackendPort == 0 {
+		return fmt.Errorf("unsupport backend port")
 	}
 
 	if len(args.Scheduler) == 0 {
@@ -134,7 +154,7 @@ func (c *Client) CreateAppHTTPSListener(blbId string, args *CreateAppHTTPSListen
 
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.POST).
-		WithURL(getAppHTTPSListenerUri(blbId)).
+		WithURL(getHTTPSListenerUri(blbId)).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
@@ -147,13 +167,17 @@ func (c *Client) CreateAppHTTPSListener(blbId string, args *CreateAppHTTPSListen
 //     - args: parameters to create SSL Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) CreateAppSSLListener(blbId string, args *CreateAppSSLListenerArgs) error {
+func (c *Client) CreateSSLListener(blbId string, args *CreateSSLListenerArgs) error {
 	if args == nil {
 		return fmt.Errorf("unset args")
 	}
 
 	if args.ListenerPort == 0 {
 		return fmt.Errorf("unsupport listener port")
+	}
+
+	if args.BackendPort == 0 {
+		return fmt.Errorf("unsupport backend port")
 	}
 
 	if len(args.Scheduler) == 0 {
@@ -166,162 +190,138 @@ func (c *Client) CreateAppSSLListener(blbId string, args *CreateAppSSLListenerAr
 
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.POST).
-		WithURL(getAppSSLListenerUri(blbId)).
+		WithURL(getSSLListenerUri(blbId)).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// UpdateAppTCPListener - update a TCP Listener
+// UpdateTCPListener - update a TCP Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to update TCP Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) UpdateAppTCPListener(blbId string, args *UpdateAppTCPListenerArgs) error {
+func (c *Client) UpdateTCPListener(blbId string, args *UpdateTCPListenerArgs) error {
 	if args == nil || args.ListenerPort == 0 {
 		return fmt.Errorf("unset listener port")
 	}
 
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.PUT).
-		WithURL(getAppTCPListenerUri(blbId)).
+		WithURL(getTCPListenerUri(blbId)).
 		WithQueryParam("listenerPort", strconv.Itoa(int(args.ListenerPort))).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// UpdateAppUDPListener - update a UDP Listener
+// UpdateUDPListener - update a UDP Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to update UDP Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) UpdateAppUDPListener(blbId string, args *UpdateAppUDPListenerArgs) error {
+func (c *Client) UpdateUDPListener(blbId string, args *UpdateUDPListenerArgs) error {
 	if args == nil || args.ListenerPort == 0 {
 		return fmt.Errorf("unset listener port")
 	}
 
-	if len(args.Scheduler) == 0 {
-		return fmt.Errorf("unset scheduler")
-	}
-
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.PUT).
-		WithURL(getAppUDPListenerUri(blbId)).
+		WithURL(getUDPListenerUri(blbId)).
 		WithQueryParam("listenerPort", strconv.Itoa(int(args.ListenerPort))).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// UpdateAppHTTPListener - update a HTTP Listener
+// UpdateHTTPListener - update a HTTP Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to update HTTP Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) UpdateAppHTTPListener(blbId string, args *UpdateAppHTTPListenerArgs) error {
+func (c *Client) UpdateHTTPListener(blbId string, args *UpdateHTTPListenerArgs) error {
 	if args == nil || args.ListenerPort == 0 {
 		return fmt.Errorf("unset listener port")
 	}
 
-	if len(args.Scheduler) == 0 {
-		return fmt.Errorf("unset scheduler")
-	}
-
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.PUT).
-		WithURL(getAppHTTPListenerUri(blbId)).
+		WithURL(getHTTPListenerUri(blbId)).
 		WithQueryParam("listenerPort", strconv.Itoa(int(args.ListenerPort))).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// UpdateAppHTTPSListener - update a HTTPS Listener
+// UpdateHTTPSListener - update a HTTPS Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to update HTTPS Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) UpdateAppHTTPSListener(blbId string, args *UpdateAppHTTPSListenerArgs) error {
+func (c *Client) UpdateHTTPSListener(blbId string, args *UpdateHTTPSListenerArgs) error {
 	if args == nil || args.ListenerPort == 0 {
 		return fmt.Errorf("unset listener port")
 	}
 
-	if len(args.Scheduler) == 0 {
-		return fmt.Errorf("unset scheduler")
-	}
-
-	if len(args.CertIds) == 0 {
-		return fmt.Errorf("unset certIds")
-	}
-
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.PUT).
-		WithURL(getAppHTTPSListenerUri(blbId)).
+		WithURL(getHTTPSListenerUri(blbId)).
 		WithQueryParam("listenerPort", strconv.Itoa(int(args.ListenerPort))).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// UpdateAppSSLListener - update a SSL Listener
+// UpdateSSLListener - update a SSL Listener
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to update SSL Listener
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) UpdateAppSSLListener(blbId string, args *UpdateAppSSLListenerArgs) error {
+func (c *Client) UpdateSSLListener(blbId string, args *UpdateSSLListenerArgs) error {
 	if args == nil || args.ListenerPort == 0 {
 		return fmt.Errorf("unset listener port")
 	}
 
-	if len(args.Scheduler) == 0 {
-		return fmt.Errorf("unset scheduler")
-	}
-
-	if len(args.CertIds) == 0 {
-		return fmt.Errorf("unset certIds")
-	}
-
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.PUT).
-		WithURL(getAppSSLListenerUri(blbId)).
+		WithURL(getSSLListenerUri(blbId)).
 		WithQueryParam("listenerPort", strconv.Itoa(int(args.ListenerPort))).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithBody(args).
 		Do()
 }
 
-// DescribeAppTCPListeners - describe all TCP Listeners
+// DescribeTCPListeners - describe all TCP Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to describe all TCP Listeners
 // RETURNS:
-//     - *DescribeAppTCPListenersResult: the result of describe all TCP Listeners
+//     - *DescribeTCPListenersResult: the result of describe all TCP Listeners
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DescribeAppTCPListeners(blbId string, args *DescribeAppListenerArgs) (*DescribeAppTCPListenersResult, error) {
+func (c *Client) DescribeTCPListeners(blbId string, args *DescribeListenerArgs) (*DescribeTCPListenersResult, error) {
 	if args == nil {
-		args = &DescribeAppListenerArgs{}
+		args = &DescribeListenerArgs{}
 	}
 
 	if args.MaxKeys <= 0 || args.MaxKeys > 1000 {
 		args.MaxKeys = 1000
 	}
 
-	result := &DescribeAppTCPListenersResult{}
+	result := &DescribeTCPListenersResult{}
 	request := bce.NewRequestBuilder(c).
 		WithMethod(http.GET).
-		WithURL(getAppTCPListenerUri(blbId)).
+		WithURL(getTCPListenerUri(blbId)).
 		WithQueryParamFilter("marker", args.Marker).
 		WithQueryParam("maxKeys", strconv.Itoa(args.MaxKeys)).
 		WithResult(result)
@@ -334,27 +334,27 @@ func (c *Client) DescribeAppTCPListeners(blbId string, args *DescribeAppListener
 	return result, err
 }
 
-// DescribeAppUDPListeners - describe all UDP Listeners
+// DescribeUDPListeners - describe all UDP Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to describe all UDP Listeners
 // RETURNS:
-//     - *DescribeAppUDPListenersResult: the result of describe all UDP Listeners
+//     - *DescribeUDPListenersResult: the result of describe all UDP Listeners
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DescribeAppUDPListeners(blbId string, args *DescribeAppListenerArgs) (*DescribeAppUDPListenersResult, error) {
+func (c *Client) DescribeUDPListeners(blbId string, args *DescribeListenerArgs) (*DescribeUDPListenersResult, error) {
 	if args == nil {
-		args = &DescribeAppListenerArgs{}
+		args = &DescribeListenerArgs{}
 	}
 
 	if args.MaxKeys <= 0 || args.MaxKeys > 1000 {
 		args.MaxKeys = 1000
 	}
 
-	result := &DescribeAppUDPListenersResult{}
+	result := &DescribeUDPListenersResult{}
 	request := bce.NewRequestBuilder(c).
 		WithMethod(http.GET).
-		WithURL(getAppUDPListenerUri(blbId)).
+		WithURL(getUDPListenerUri(blbId)).
 		WithQueryParamFilter("marker", args.Marker).
 		WithQueryParam("maxKeys", strconv.Itoa(args.MaxKeys)).
 		WithResult(result)
@@ -367,27 +367,27 @@ func (c *Client) DescribeAppUDPListeners(blbId string, args *DescribeAppListener
 	return result, err
 }
 
-// DescribeAppHTTPListeners - describe all HTTP Listeners
+// DescribeHTTPListeners - describe all HTTP Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to describe all HTTP Listeners
 // RETURNS:
-//     - *DescribeAppHTTPListenersResult: the result of describe all HTTP Listeners
+//     - *DescribeHTTPListenersResult: the result of describe all HTTP Listeners
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DescribeAppHTTPListeners(blbId string, args *DescribeAppListenerArgs) (*DescribeAppHTTPListenersResult, error) {
+func (c *Client) DescribeHTTPListeners(blbId string, args *DescribeListenerArgs) (*DescribeHTTPListenersResult, error) {
 	if args == nil {
-		args = &DescribeAppListenerArgs{}
+		args = &DescribeListenerArgs{}
 	}
 
 	if args.MaxKeys <= 0 || args.MaxKeys > 1000 {
 		args.MaxKeys = 1000
 	}
 
-	result := &DescribeAppHTTPListenersResult{}
+	result := &DescribeHTTPListenersResult{}
 	request := bce.NewRequestBuilder(c).
 		WithMethod(http.GET).
-		WithURL(getAppHTTPListenerUri(blbId)).
+		WithURL(getHTTPListenerUri(blbId)).
 		WithQueryParamFilter("marker", args.Marker).
 		WithQueryParam("maxKeys", strconv.Itoa(args.MaxKeys)).
 		WithResult(result)
@@ -400,27 +400,27 @@ func (c *Client) DescribeAppHTTPListeners(blbId string, args *DescribeAppListene
 	return result, err
 }
 
-// DescribeAppHTTPSListeners - describe all HTTPS Listeners
+// DescribeHTTPSListeners - describe all HTTPS Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to describe all HTTPS Listeners
 // RETURNS:
-//     - *DescribeAppHTTPSListenersResult: the result of describe all HTTPS Listeners
+//     - *DescribeHTTPSListenersResult: the result of describe all HTTPS Listeners
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DescribeAppHTTPSListeners(blbId string, args *DescribeAppListenerArgs) (*DescribeAppHTTPSListenersResult, error) {
+func (c *Client) DescribeHTTPSListeners(blbId string, args *DescribeListenerArgs) (*DescribeHTTPSListenersResult, error) {
 	if args == nil {
-		args = &DescribeAppListenerArgs{}
+		args = &DescribeListenerArgs{}
 	}
 
 	if args.MaxKeys <= 0 || args.MaxKeys > 1000 {
 		args.MaxKeys = 1000
 	}
 
-	result := &DescribeAppHTTPSListenersResult{}
+	result := &DescribeHTTPSListenersResult{}
 	request := bce.NewRequestBuilder(c).
 		WithMethod(http.GET).
-		WithURL(getAppHTTPSListenerUri(blbId)).
+		WithURL(getHTTPSListenerUri(blbId)).
 		WithQueryParamFilter("marker", args.Marker).
 		WithQueryParam("maxKeys", strconv.Itoa(args.MaxKeys)).
 		WithResult(result)
@@ -433,27 +433,27 @@ func (c *Client) DescribeAppHTTPSListeners(blbId string, args *DescribeAppListen
 	return result, err
 }
 
-// DescribeAppSSLListeners - describe all SSL Listeners
+// DescribeSSLListeners - describe all SSL Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to describe all SSL Listeners
 // RETURNS:
-//     - *DescribeAppSSLListenersResult: the result of describe all SSL Listeners
+//     - *DescribeSSLListenersResult: the result of describe all SSL Listeners
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DescribeAppSSLListeners(blbId string, args *DescribeAppListenerArgs) (*DescribeAppSSLListenersResult, error) {
+func (c *Client) DescribeSSLListeners(blbId string, args *DescribeListenerArgs) (*DescribeSSLListenersResult, error) {
 	if args == nil {
-		args = &DescribeAppListenerArgs{}
+		args = &DescribeListenerArgs{}
 	}
 
 	if args.MaxKeys <= 0 || args.MaxKeys > 1000 {
 		args.MaxKeys = 1000
 	}
 
-	result := &DescribeAppSSLListenersResult{}
+	result := &DescribeSSLListenersResult{}
 	request := bce.NewRequestBuilder(c).
 		WithMethod(http.GET).
-		WithURL(getAppSSLListenerUri(blbId)).
+		WithURL(getSSLListenerUri(blbId)).
 		WithQueryParamFilter("marker", args.Marker).
 		WithQueryParam("maxKeys", strconv.Itoa(args.MaxKeys)).
 		WithResult(result)
@@ -466,27 +466,27 @@ func (c *Client) DescribeAppSSLListeners(blbId string, args *DescribeAppListener
 	return result, err
 }
 
-// DescribeAppAllListeners - describe all Listeners
+// DescribeAllListeners - describe all Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to describe all Listeners
 // RETURNS:
-//     - *DescribeAppAllListenersResult: the result of describe all Listeners
+//     - *DescribeAllListenersResult: the result of describe all Listeners
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DescribeAppAllListeners(blbId string, args *DescribeAppListenerArgs) (*DescribeAppAllListenersResult, error) {
+func (c *Client) DescribeAllListeners(blbId string, args *DescribeListenerArgs) (*DescribeAllListenersResult, error) {
 	if args == nil {
-		args = &DescribeAppListenerArgs{}
+		args = &DescribeListenerArgs{}
 	}
 
 	if args.MaxKeys <= 0 || args.MaxKeys > 1000 {
 		args.MaxKeys = 1000
 	}
 
-	result := &DescribeAppAllListenersResult{}
+	result := &DescribeAllListenersResult{}
 	request := bce.NewRequestBuilder(c).
 		WithMethod(http.GET).
-		WithURL(getAppListenerUri(blbId)).
+		WithURL(getListenerUri(blbId)).
 		WithQueryParamFilter("marker", args.Marker).
 		WithQueryParam("maxKeys", strconv.Itoa(args.MaxKeys)).
 		WithResult(result)
@@ -499,14 +499,14 @@ func (c *Client) DescribeAppAllListeners(blbId string, args *DescribeAppListener
 	return result, err
 }
 
-// DeleteAppListeners - delete Listeners
+// DeleteListeners - delete Listeners
 //
 // PARAMS:
 //     - blbId: LoadBalancer's ID
 //     - args: parameters to delete Listeners, a listener port list
 // RETURNS:
 //     - error: nil if ok otherwise the specific error
-func (c *Client) DeleteAppListeners(blbId string, args *DeleteAppListenersArgs) error {
+func (c *Client) DeleteListeners(blbId string, args *DeleteListenersArgs) error {
 	if args == nil {
 		return fmt.Errorf("unset args")
 	}
@@ -517,100 +517,11 @@ func (c *Client) DeleteAppListeners(blbId string, args *DeleteAppListenersArgs) 
 
 	return bce.NewRequestBuilder(c).
 		WithMethod(http.PUT).
-		WithURL(getAppListenerUri(blbId)).
+		WithURL(getListenerUri(blbId)).
 		WithQueryParamFilter("clientToken", args.ClientToken).
 		WithQueryParam("batchdelete", "").
 		WithBody(args).
 		Do()
 }
 
-// CreatePolicys - create a policy bind with Listener
-//
-// PARAMS:
-//     - blbId: LoadBalancer's ID
-//     - args: parameters to create a policy
-// RETURNS:
-//     - error: nil if ok otherwise the specific error
-func (c *Client) CreatePolicys(blbId string, args *CreatePolicysArgs) error {
-	if args == nil {
-		return fmt.Errorf("unset args")
-	}
 
-	if args.ListenerPort == 0 {
-		return fmt.Errorf("unset listen port")
-	}
-
-	if len(args.AppPolicyVos) == 0 {
-		return fmt.Errorf("unset App Policy")
-	}
-
-	return bce.NewRequestBuilder(c).
-		WithMethod(http.POST).
-		WithURL(getPolicysUrl(blbId)).
-		WithQueryParamFilter("clientToken", args.ClientToken).
-		WithBody(args).
-		Do()
-}
-
-// DescribePolicys - descirbe a policy
-//
-// PARAMS:
-//     - blbId: LoadBalancer's ID
-//     - args: parameters to create a policy
-// RETURNS:
-//     - error: nil if ok otherwise the specific error
-func (c *Client) DescribePolicys(blbId string, args *DescribePolicysArgs) (*DescribePolicysResult, error) {
-	if args == nil {
-		return nil, fmt.Errorf("unset args")
-	}
-
-	if args.Port == 0 {
-		return nil, fmt.Errorf("unset port")
-	}
-
-	if args.MaxKeys > 1000 || args.MaxKeys <= 0 {
-		args.MaxKeys = 1000
-	}
-
-	result := &DescribePolicysResult{}
-	err := bce.NewRequestBuilder(c).
-		WithMethod(http.GET).
-		WithURL(getPolicysUrl(blbId)).
-		WithQueryParam("port", strconv.Itoa(int(args.Port))).
-		WithQueryParamFilter("type", args.Type).
-		WithQueryParamFilter("marker", args.Marker).
-		WithQueryParamFilter("maxKeys", strconv.Itoa(args.MaxKeys)).
-		WithResult(result).
-		Do()
-
-	return result, err
-}
-
-// DeletePolicys - delete a policy
-//
-// PARAMS:
-//     - blbId: LoadBalancer's ID
-//     - args: parameters to delete a policy
-// RETURNS:
-//     - error: nil if ok otherwise the specific error
-func (c *Client) DeletePolicys(blbId string, args *DeletePolicysArgs) error {
-	if args == nil {
-		return fmt.Errorf("unset args")
-	}
-
-	if args.Port == 0 {
-		return fmt.Errorf("unset port")
-	}
-
-	if len(args.PolicyIdList) == 0 {
-		return fmt.Errorf("unset policy id list")
-	}
-
-	return bce.NewRequestBuilder(c).
-		WithMethod(http.PUT).
-		WithURL(getPolicysUrl(blbId)).
-		WithQueryParamFilter("clientToken", args.ClientToken).
-		WithQueryParam("batchdelete", "").
-		WithBody(args).
-		Do()
-}

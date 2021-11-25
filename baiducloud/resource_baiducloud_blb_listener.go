@@ -253,14 +253,6 @@ func resourceBaiduCloudBLBListener() *schema.Resource {
 				DiffSuppressFunc: appBlbProtocolTCPUDPHTTPSuppressFunc,
 			},
 			// https && ssl
-			"ie6_compatible": {
-				Type:             schema.TypeBool,
-				Description:      "Listener support ie6 option, default true",
-				Optional:         true,
-				Computed:         true,
-				DiffSuppressFunc: appBlbProtocolTCPUDPHTTPSuppressFunc,
-			},
-			// https && ssl
 			"encryption_type": {
 				Type:             schema.TypeString,
 				Description:      "Listener encryption option, support [compatibleIE, incompatibleIE, userDefind]",
@@ -705,10 +697,6 @@ func buildBaiduCloudCreateblbHTTPSListenerArgs(d *schema.ResourceData, meta inte
 		return nil, fmt.Errorf("HTTPS Listener require cert, but not set")
 	}
 
-	if v, ok := d.GetOk("ie6_compatible"); ok {
-		result.Ie6Compatible = v.(bool)
-	}
-
 	if v, ok := d.GetOk("encryption_type"); ok {
 		result.EncryptionType = v.(string)
 	}
@@ -758,10 +746,6 @@ func buildBaiduCloudCreateblbSSLListenerArgs(d *schema.ResourceData, meta interf
 	}
 	if len(result.CertIds) <= 0 {
 		return nil, fmt.Errorf("SSL Listener require cert, but not set")
-	}
-
-	if v, ok := d.GetOk("ie6_compatible"); ok {
-		result.Ie6Compatible = v.(bool)
 	}
 
 	if v, ok := d.GetOk("encryption_type"); ok {
@@ -1072,14 +1056,6 @@ func buildBaiduCloudUpdateBLBHTTPSListenerArgs(d *schema.ResourceData, meta inte
 		return false, nil, fmt.Errorf("HTTPS Listener require cert, but not set")
 	}
 
-	if v, ok := d.GetOk("ie6_compatible"); ok {
-		if !update {
-			update = d.HasChange("ie6_compatible")
-		}
-
-		result.Ie6Compatible = v.(bool)
-	}
-
 	//if v, ok := d.GetOk("dual_auth"); ok {
 	//	if !update {
 	//		update = d.HasChange("dual_auth")
@@ -1141,14 +1117,6 @@ func buildBaiduCloudUpdateBLBSSLListenerArgs(d *schema.ResourceData, meta interf
 	}
 	if len(result.CertIds) <= 0 {
 		return false, nil, fmt.Errorf("SSL Listener require cert, but not set")
-	}
-
-	if v, ok := d.GetOk("ie6_compatible"); ok {
-		if !update {
-			update = d.HasChange("ie6_compatible")
-		}
-
-		result.Ie6Compatible = v.(bool)
 	}
 
 	if v, ok := d.GetOk("encryption_type"); ok {

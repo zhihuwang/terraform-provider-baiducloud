@@ -131,10 +131,10 @@ func resourceCCEv2ClusterSpec() *schema.Resource {
 				Optional:    true,
 			},
 			"k8s_version": {
-				Type:         schema.TypeString,
-				Description:  "Kubernetes Version. Available Value: [1.13.10, 1.16.8].",
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice(K8SVersionPermitted, false),
+				Type:        schema.TypeString,
+				Description: "Kubernetes Version. Available Value: [1.13.10, 1.16.8].",
+				Optional:    true,
+				//ValidateFunc: validation.StringInSlice(K8SVersionPermitted, false),
 			},
 			"runtime_type": {
 				Type:         schema.TypeString,
@@ -1019,6 +1019,34 @@ func resourceCCEv2VPCConfig() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
+			"security_group": {
+				Type:        schema.TypeList,
+				Description: "security_group setting for cce",
+				Optional:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enable_cce_optional_security_group": {
+							Type:        schema.TypeBool,
+							Description: "enable_cce_optional_security_group",
+							Optional:    true,
+						},
+						"enable_cce_required_security_group": {
+							Type:        schema.TypeBool,
+							Description: "enableCCEOptionalSecurityGroup",
+							Optional:    true,
+						},
+						"custom_security_groups": {
+							Type:        schema.TypeSet,
+							Description: "custom_security_groups",
+							Optional:    true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+			},
+
 			"vpc_subnet_type": {
 				Type:         schema.TypeString,
 				Description:  "VPC Subnet type. Available Value: [BCC, BCC_NAT, BBC].",
@@ -1738,8 +1766,8 @@ func convertInstanceGroupSpecFromJsonToMap(spec *ccev2.InstanceGroupSpec) ([]int
 		specMap["bbc_option"] = option
 	}
 
-	if spec.InstanceTemplate.VPCConfig != (ccev2types.VPCConfig{}) {
-		config, err := convertVPCConfigFromJsonToMap(&spec.InstanceTemplate.VPCConfig)
+	if spec.InstanceTemplate.VPCConfig != nil {
+		config, err := convertVPCConfigFromJsonToMap(spec.InstanceTemplate.VPCConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -1831,8 +1859,8 @@ func convertInstanceSpecFromJsonToMap(spec *ccev2types.InstanceSpec) ([]interfac
 		specMap["bbc_option"] = option
 	}
 
-	if spec.VPCConfig != (ccev2types.VPCConfig{}) {
-		config, err := convertVPCConfigFromJsonToMap(&spec.VPCConfig)
+	if spec.VPCConfig != nil {
+		config, err := convertVPCConfigFromJsonToMap(spec.VPCConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -2607,7 +2635,7 @@ func buildInstanceSpec(instanceSpecRawMap map[string]interface{}) (*ccev2types.I
 			log.Println("Build InstanceSpec VPCConfig Error:" + err.Error())
 			return nil, err
 		}
-		instanceSpec.VPCConfig = *vpcConfig
+		instanceSpec.VPCConfig = vpcConfig
 	}
 
 	if v, ok := instanceSpecRawMap["instance_resource"]; ok && len(v.([]interface{})) == 1 {
@@ -3023,6 +3051,27 @@ func buildVPCConfig(vpcRawMap map[string]interface{}) (*ccev2types.VPCConfig, er
 
 	if v, ok := vpcRawMap["vpc_subnet_id"]; ok && v.(string) != "" {
 		vpcConfig.VPCSubnetID = v.(string)
+	}
+
+	if v, ok := vpcRawMap["security_group"]; ok {
+		sgs := v.([]interface{})
+		if len(sgs) > 0 {
+			sg := ccev2types.SecurityGroup{}
+			instanceGroupSpecMap := sgs[0].(map[string]interface{})
+			if v, ok := instanceGroupSpecMap["custom_security_groups"]; ok {
+				for _, id := range v.(*schema.Set).List() {
+					sg.CustomSecurityGroups = append(sg.CustomSecurityGroups, id.(string))
+				}
+
+			}
+			if v, ok := instanceGroupSpecMap["enable_cce_optional_security_group"]; ok {
+				sg.EnableCCEOptionalSecurityGroup = v.(bool)
+			}
+			if v, ok := instanceGroupSpecMap["enable_cce_required_security_group"]; ok {
+				sg.EnableCCERequiredSecurityGroup = v.(bool)
+			}
+			vpcConfig.SecurityGroup = sg
+		}
 	}
 
 	if v, ok := vpcRawMap["security_group_id"]; ok && v.(string) != "" {

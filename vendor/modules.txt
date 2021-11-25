@@ -57,7 +57,7 @@ github.com/aws/aws-sdk-go/service/s3
 github.com/aws/aws-sdk-go/service/s3/internal/arn
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
-# github.com/baidubce/bce-sdk-go v0.9.79
+# github.com/baidubce/bce-sdk-go v0.9.79 => /home/ahoo/work/bce-sdk-go/
 github.com/baidubce/bce-sdk-go/auth
 github.com/baidubce/bce-sdk-go/bce
 github.com/baidubce/bce-sdk-go/http
@@ -66,6 +66,7 @@ github.com/baidubce/bce-sdk-go/services/appblb
 github.com/baidubce/bce-sdk-go/services/bbc
 github.com/baidubce/bce-sdk-go/services/bcc
 github.com/baidubce/bce-sdk-go/services/bcc/api
+github.com/baidubce/bce-sdk-go/services/blb
 github.com/baidubce/bce-sdk-go/services/bos
 github.com/baidubce/bce-sdk-go/services/bos/api
 github.com/baidubce/bce-sdk-go/services/cce
