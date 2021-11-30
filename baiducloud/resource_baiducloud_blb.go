@@ -86,6 +86,12 @@ func resourceBaiduCloudBLB() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
+			"eip": {
+				Type:        schema.TypeString,
+				Description: "The eip which will be attached to the blb",
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"vpc_name": {
 				Type:        schema.TypeString,
 				Description: "The VPC name to which the LoadBalance instance belongs",
@@ -313,6 +319,10 @@ func buildBaiduCloudCreateBLBArgs(d *schema.ResourceData) *blb.CreateLoadBalance
 
 	if v, ok := d.GetOk("vpc_id"); ok && v.(string) != "" {
 		result.VpcId = v.(string)
+	}
+
+	if v, ok := d.GetOk("eip"); ok && v.(string) != "" {
+		result.Eip = v.(string)
 	}
 
 	if v, ok := d.GetOk("tags"); ok {
