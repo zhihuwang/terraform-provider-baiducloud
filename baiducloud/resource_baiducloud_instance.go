@@ -578,7 +578,7 @@ func resourceBaiduCloudInstanceRead(d *schema.ResourceData, meta interface{}) er
 	}
 	sysVolume := sysVolumes[0]
 	d.Set("root_disk_size_in_gb", sysVolume.DiskSizeInGB)
-	d.Set("root_disk_storage_type", sysVolume.StorageType)
+	//d.Set("root_disk_storage_type", sysVolume.StorageType)
 
 	return nil
 }

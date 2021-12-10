@@ -280,6 +280,55 @@ func (s *BccService) ChangeToPrepaid(instanceId string, duration int) error {
 	log.Printf("ChangeToPrepaid with order %s", res.OrderId)
 	return err
 }
+func (s *BccService) CreateDeployset(args *api.CreateDeploySetArgs) (*api.CreateDeploySetResult, error) {
+	action := "Create deployset "
+
+	raw, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
+		return bccClient.CreateDeploySet(args)
+	})
+	if err != nil {
+		log.Printf("%s failed: %s", action, err.Error())
+	}
+	res := raw.(*api.CreateDeploySetResult)
+	if res != nil {
+		log.Printf("Create Deployset:%s", res.DeploySetId)
+	}
+	return res, err
+}
+func (s *BccService) GetDeployset(deploySetId string) (*api.DeploySetResult, error) {
+	action := "Get deployset " + deploySetId
+
+	raw, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
+		return bccClient.GetDeploySet(deploySetId)
+	})
+	if err != nil {
+		log.Printf("%s failed: %s", action, err.Error())
+	}
+	res := raw.(*api.DeploySetResult)
+	return res, err
+}
+
+func (s *BccService) ModifyDeploySet(deploySetId string, args *api.ModifyDeploySetArgs) error {
+	action := "Modify deployset " + deploySetId
+	_, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
+		return bccClient.ModifyDeploySet(deploySetId, args)
+	})
+	if err != nil {
+		log.Printf("%s failed: %s", action, err.Error())
+	}
+	return err
+}
+
+func (s *BccService) DeleteDeploySet(deploySetId string) error {
+	action := "Delete deployset " + deploySetId
+	_, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
+		return nil, bccClient.DeleteDeploySet(deploySetId)
+	})
+	if err != nil {
+		log.Printf("%s failed: %s", action, err.Error())
+	}
+	return err
+}
 
 func (s *BccService) EnableAutoRenew(instanceId string, renewTimeUnit string, renewTime int) error {
 	action := "Enable AutoRenew for bcc instance " + instanceId

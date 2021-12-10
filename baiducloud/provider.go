@@ -213,6 +213,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"baiducloud_instance":                     resourceBaiduCloudInstance(),
+			"baiducloud_deployset":                    resourceBaiduCloudDeployset(),
 			"baiducloud_cds":                          resourceBaiduCloudCDS(),
 			"baiducloud_cds_attachment":               resourceBaiduCloudCDSAttachment(),
 			"baiducloud_snapshot":                     resourceBaiduCloudSnapshot(),
