@@ -77,6 +77,11 @@ func resourceBaiduCloudInstance() *schema.Resource {
 				ForceNew:    true,
 				Computed:    true,
 			},
+			"deploy_id": {
+				Type:        schema.TypeString,
+				Description: "DeploySet id to start the instance in.",
+				Optional:    true,
+			},
 			"billing": {
 				Type:        schema.TypeList,
 				Description: "Billing information of the instance.",
@@ -845,6 +850,9 @@ func buildBaiduCloudInstanceBySpecArgs(d *schema.ResourceData, meta interface{})
 
 	if imageID, ok := d.GetOk("image_id"); ok {
 		request.ImageId = imageID.(string)
+	}
+	if deployId, ok := d.GetOk("deploy_id"); ok {
+		request.DeployId = deployId.(string)
 	}
 
 	if name, ok := d.GetOk("name"); ok {
