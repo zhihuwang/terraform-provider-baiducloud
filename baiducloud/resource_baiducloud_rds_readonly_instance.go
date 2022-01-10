@@ -127,6 +127,32 @@ func resourceBaiduCloudRdsReadOnlyInstance() *schema.Resource {
 					},
 				},
 			},
+			"security_ips": {
+				Type:        schema.TypeList,
+				Description: "Security ip list",
+				Optional:    true,
+				Computed:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"parameters": {
+				Type: schema.TypeList,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
 			"zone_names": {
 				Type:        schema.TypeList,
 				Description: "Zone name list",
@@ -249,6 +275,15 @@ func resourceBaiduCloudRdsReadOnlyInstanceCreate(d *schema.ResourceData, meta in
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_rds_readonly_instance", action, BCESDKGoERROR)
 	}
 
+	// set instance parameters
+	// if err := updateRdsParameters(d, meta, d.Id()); err != nil {
+	// 	return err
+	// }
+	// update instance security ips
+	// if err := updateRdsSecurityIps(d, meta, d.Id()); err != nil {
+	// 	return err
+	// }
+
 	return resourceBaiduCloudRdsReadOnlyInstanceRead(d, meta)
 }
 
@@ -299,7 +334,10 @@ func resourceBaiduCloudRdsReadOnlyInstanceRead(d *schema.ResourceData, meta inte
 	d.Set("address", result.Endpoint.Address)
 	d.Set("v_net_ip", result.Endpoint.VnetIp)
 	d.Set("subnets", rdsService.TransRdsSubnetsToSchema(result.Subnets))
-
+	// ipResult, err := rdsService.ListSecurityIps(instanceID)
+	// if err == nil {
+	// 	d.Set("security_ips", ipResult.SecurityIps)
+	// }
 	return nil
 }
 
@@ -312,6 +350,15 @@ func resourceBaiduCloudRdsReadOnlyInstanceUpdate(d *schema.ResourceData, meta in
 	if err := resizeRds(d, meta, instanceID); err != nil {
 		return err
 	}
+	// // update instance parameters
+	// if err := updateRdsParameters(d, meta, instanceID); err != nil {
+	// 	return err
+	// }
+
+	// // update instance security ips
+	// if err := updateRdsSecurityIps(d, meta, instanceID); err != nil {
+	// 	return err
+	// }
 
 	d.Partial(false)
 
