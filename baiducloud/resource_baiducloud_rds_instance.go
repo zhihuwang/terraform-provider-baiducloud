@@ -363,7 +363,6 @@ func resourceBaiduCloudRdsInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("v_net_ip", result.Endpoint.VnetIp)
 	d.Set("volume_capacity", result.VolumeCapacity)
 	d.Set("subnets", rdsService.TransRdsSubnetsToSchema(result.Subnets))
-
 	ipResult, err := rdsService.ListSecurityIps(instanceID)
 	if err == nil {
 		d.Set("security_ips", ipResult.SecurityIps)
@@ -509,6 +508,10 @@ func buildBaiduCloudRdsInstanceArgs(d *schema.ResourceData, meta interface{}) (*
 		request.VpcId = vpcID.(string)
 	}
 
+	if v, ok := d.GetOk("tags"); ok {
+		request.Tags = tranceTagMapToModel(v.(map[string]interface{}))
+	}
+
 	if v, ok := d.GetOk("subnets"); ok {
 		subnetList := v.([]interface{})
 		subnetRequests := make([]rds.SubnetMap, len(subnetList))
@@ -605,8 +608,25 @@ func updateRdsParameters(d *schema.ResourceData, meta interface{}, instanceID st
 		if er != nil {
 			return WrapErrorf(er, DefaultErrorMsg, "baiducloud_rds_instance", action, BCESDKGoERROR)
 		}
-		d.SetPartial("parameters")
 
+		_, er = client.WithRdsClient(func(rdsClient *rds.Client) (i interface{}, e error) {
+			return nil, rdsClient.RebootInstance(instanceID)
+		})
+
+		if er != nil {
+			return WrapErrorf(er, DefaultErrorMsg, "baiducloud_rds_instance", action, BCESDKGoERROR)
+		}
+		time.Sleep(time.Second * 1)
+		stateConf := buildStateConf(
+			[]string{RDSStatusRebooting, RDSStatusModifying},
+			[]string{RDSStatusRunning},
+			d.Timeout(schema.TimeoutCreate),
+			rdsService.InstanceStateRefresh(d.Id(), []string{}),
+		)
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_rds_instance", action, BCESDKGoERROR)
+		}
+		d.SetPartial("parameters")
 	}
 	return nil
 }
