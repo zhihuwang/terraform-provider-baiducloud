@@ -1,6 +1,6 @@
 module github.com/terraform-providers/terraform-provider-baiducloud
 
-replace github.com/baidubce/bce-sdk-go => /home/ahoo/work/bce-sdk-go/
+replace github.com/baidubce/bce-sdk-go => /chj/app/workspace/bce-sdk-go/
 
 require (
 	github.com/baidubce/bce-sdk-go v0.9.79
