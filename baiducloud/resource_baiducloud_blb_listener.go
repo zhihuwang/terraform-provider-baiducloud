@@ -476,12 +476,17 @@ func resourceBaiduCloudBLBListenerDelete(d *schema.ResourceData, meta interface{
 	protocol := d.Get("protocol").(string)
 	listenerPort := d.Get("listener_port").(int)
 	action := fmt.Sprintf("Delete blb %s Listener [%s:%d]", blbId, protocol, listenerPort)
-
+	md := blb.PortTypeModel{
+		Port: listenerPort,
+		Type: protocol,
+	}
+	tms := []blb.PortTypeModel{}
+	tms = append(tms, md)
 	err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
 		_, err := client.WithBLBClient(func(client *blb.Client) (i interface{}, e error) {
 			return blbId, client.DeleteListeners(blbId, &blb.DeleteListenersArgs{
-				PortList:    []uint16{uint16(listenerPort)},
-				ClientToken: buildClientToken(),
+				PortTypeList: tms,
+				ClientToken:  buildClientToken(),
 			})
 		})
 		addDebug(action, blbId)
