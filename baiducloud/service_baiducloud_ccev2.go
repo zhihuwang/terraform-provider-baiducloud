@@ -458,7 +458,7 @@ func resourceCCEv2InstanceSpec() *schema.Resource {
 			},
 			"master_type": {
 				Type:         schema.TypeString,
-				Description:  "Master Type. Available Value: [managed, custom, serverless].",
+				Description:  "Master Type. Available Value: [managed, custom, serverless, containerizedCustom].",
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validation.StringInSlice(MasterTypePermitted, false),
@@ -3275,6 +3275,7 @@ var MasterTypePermitted = []string{
 	string(ccev2types.MasterTypeManaged),
 	string(ccev2types.MasterTypeCustom),
 	string(ccev2types.MasterTypeServerless),
+	string(ccev2types.MasterTypeContainerizedCustom),
 }
 
 var ClusterHAPermitted = []int{
