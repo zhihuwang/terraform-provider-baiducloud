@@ -350,7 +350,7 @@ func resourceBaiduCloudInstance() *schema.Resource {
 				Default:      INSTANCE_ACTION_START,
 				ValidateFunc: validation.StringInSlice([]string{INSTANCE_ACTION_START, INSTANCE_ACTION_STOP}, false),
 			},
-			"tags": tagsSchema(),
+			"tags": normalTagsSchema(),
 		},
 	}
 }
@@ -630,6 +630,10 @@ func resourceBaiduCloudInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 
 	// update instance action
 	if err := updateInstanceAction(d, meta, instanceID); err != nil {
+		return err
+	}
+	// update bcc tags
+	if err := updateBccInstanceTags(d, meta, instanceID); err != nil {
 		return err
 	}
 
@@ -1045,6 +1049,40 @@ func updateInstanceDescription(d *schema.ResourceData, meta interface{}, instanc
 		}
 
 		d.SetPartial("description")
+	}
+
+	return nil
+}
+
+func updateBccInstanceTags(d *schema.ResourceData, meta interface{}, instanceID string) error {
+	action := "Update instance security groups " + instanceID
+	client := meta.(*connectivity.BaiduClient)
+
+	if d.HasChange("tags") {
+		o, n := d.GetChange("tags")
+		if o != nil {
+			tagModes := tranceTagMapToModel(o.(map[string]interface{}))
+			unBindTagsRequest := &api.UnBindTagsRequest{
+				ChangeTags: tagModes,
+			}
+			if _, err := client.WithBccClient(func(bccClient *bcc.Client) (data interface{}, e error) {
+				return nil, bccClient.UnBindInstanceToTags(instanceID, unBindTagsRequest)
+			}); err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bcc_instance", action, BCESDKGoERROR)
+			}
+		}
+		if n != nil {
+			tagModes := tranceTagMapToModel(n.(map[string]interface{}))
+			bindTagsRequest := &api.BindTagsRequest{
+				ChangeTags: tagModes,
+			}
+			if _, err := client.WithBccClient(func(bccClient *bcc.Client) (data interface{}, e error) {
+				return nil, bccClient.BindInstanceToTags(instanceID, bindTagsRequest)
+			}); err != nil {
+				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bcc_instance", action, BCESDKGoERROR)
+			}
+		}
+		d.SetPartial("tags")
 	}
 
 	return nil

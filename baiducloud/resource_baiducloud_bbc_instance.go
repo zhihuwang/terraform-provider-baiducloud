@@ -770,7 +770,7 @@ func updateBbcInstanceTags(d *schema.ResourceData, meta interface{}, instanceID 
 			}
 		}
 		if n != nil {
-			tagModes := tranceTagMapToModel(o.(map[string]interface{}))
+			tagModes := tranceTagMapToModel(n.(map[string]interface{}))
 			bindTagsArgs := &bbc.BindTagsArgs{
 				ChangeTags: tagModes,
 			}
