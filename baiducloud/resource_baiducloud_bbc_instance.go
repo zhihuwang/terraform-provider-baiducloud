@@ -35,6 +35,7 @@ import (
 	"time"
 
 	"github.com/baidubce/bce-sdk-go/bce"
+	"github.com/baidubce/bce-sdk-go/model"
 	"github.com/baidubce/bce-sdk-go/services/bbc"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -431,6 +432,35 @@ func resourceBaiduCloudBbcInstanceDelete(d *schema.ResourceData, meta interface{
 
 	instanceId := d.Id()
 	action := "Delete BBC Instance " + instanceId
+	// terminated prepaid instance
+	if v, ok := d.GetOk("billing"); ok {
+		billings := v.([]interface{})
+		billing := billings[0].(map[string]interface{})
+		if p, ok := billing["payment_timing"]; ok {
+			if p.(string) == "Prepaid" {
+				// try to add tag and shutdown
+				client.WithBbcClient(func(bbcClient *bbc.Client) (interface{}, error) {
+					return nil, bbcClient.StopInstance(instanceId, true)
+				})
+				bindTagsRequest := &bbc.BindTagsArgs{
+					ChangeTags: []model.TagModel{
+						model.TagModel{
+							TagKey:   "terminated",
+							TagValue: "true",
+						},
+					},
+				}
+				_, err := client.WithBbcClient(func(bbcClient *bbc.Client) (interface{}, error) {
+					return nil, bbcClient.BindTags(instanceId, bindTagsRequest)
+				})
+				if err != nil {
+					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bbc_instance", action, action, BCESDKGoERROR)
+				} else {
+					return nil
+				}
+			}
+		}
+	}
 	//args := &bbc.DeleteInstanceIngorePaymentArgs{
 	//		InstanceId:         instanceId,
 	//		RelatedReleaseFlag: true, //true or false
