@@ -138,7 +138,7 @@ func resourceCCEv2ClusterSpec() *schema.Resource {
 			},
 			"runtime_type": {
 				Type:         schema.TypeString,
-				Description:  "Container Runtime Type. Available Value: [docker].",
+				Description:  "Container Runtime Type. Available Value: [docker,containerd,bci].",
 				Optional:     true,
 				ValidateFunc: validation.StringInSlice(RuntimeTypePermitted, false),
 			},
@@ -3269,6 +3269,8 @@ var K8SVersionPermitted = []string{
 
 var RuntimeTypePermitted = []string{
 	string(ccev2types.RuntimeTypeDocker),
+	string(ccev2types.RuntimeTypeBci),
+	string(ccev2types.RuntimeTypeContainerd),
 }
 
 var MasterTypePermitted = []string{
