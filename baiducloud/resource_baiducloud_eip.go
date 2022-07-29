@@ -27,9 +27,9 @@ import (
 
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/services/eip"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -65,6 +65,11 @@ func resourceBaiduCloudEip() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validation.StringLenBetween(1, 65),
 			},
+			"route_type": {
+				Type:        schema.TypeString,
+				Description: "EIP route type",
+				Optional:    true,
+			},
 			"bandwidth_in_mbps": {
 				Type:        schema.TypeInt,
 				Description: "Eip bandwidth(Mbps), if payment_timing is Prepaid or billing_method is ByBandWidth, support between 1 and 200, if billing_method is ByTraffic, support between 1 and 1000",
@@ -90,7 +95,7 @@ func resourceBaiduCloudEip() *schema.Resource {
 				Description:  "Eip payment timing, support Prepaid and Postpaid",
 				Required:     true,
 				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"Prepaid", "Postpaid"}, false),
+				ValidateFunc: validation.StringInSlice([]string{PaymentTimingPrepaid, PaymentTimingPostpaid}, false),
 			},
 			"billing_method": {
 				Type:        schema.TypeString,
@@ -243,7 +248,7 @@ func resourceBaiduCloudEipUpdate(d *schema.ResourceData, meta interface{}) error
 		d.SetPartial("bandwidth_in_mbps")
 	}
 
-	if d.Get("billing_method").(string) == "Prepaid" &&
+	if d.Get("billing_method").(string) == PaymentTimingPrepaid &&
 		(d.HasChange("auto_renew_time") || d.HasChange("auto_renew_time_unit")) {
 		isStart, args := buildUpdateAutoRenewArgs(d)
 		if isStart {
@@ -304,6 +309,10 @@ func resourceBaiduCloudEipDelete(d *schema.ResourceData, meta interface{}) error
 
 func buildBaiduCloudCreateEipArgs(d *schema.ResourceData) *eip.CreateEipArgs {
 	request := &eip.CreateEipArgs{}
+
+	if v, ok := d.GetOk("route_type"); ok && v.(string) != "" {
+		request.RouteType = v.(string)
+	}
 
 	if v, ok := d.GetOk("name"); ok && v.(string) != "" {
 		request.Name = v.(string)

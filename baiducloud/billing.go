@@ -2,7 +2,7 @@ package baiducloud
 
 import (
 	"github.com/baidubce/bce-sdk-go/services/bbc"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func setBilling(d *schema.ResourceData, paymentTiming string) {

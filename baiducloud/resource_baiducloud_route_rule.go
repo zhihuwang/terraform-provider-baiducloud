@@ -10,7 +10,7 @@ resource "baiducloud_route_rule" "default" {
   destination_address = "192.168.1.0/24"
   next_hop_id = "i-BtXnDM6y"
   next_hop_type = "custom"
-  description = "baiducloud route rule created by terraform"
+  description = "created by terraform"
 }
 ```
 */
@@ -21,9 +21,9 @@ import (
 
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/services/vpc"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )

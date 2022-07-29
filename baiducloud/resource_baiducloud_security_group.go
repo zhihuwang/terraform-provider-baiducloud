@@ -29,8 +29,8 @@ import (
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/services/bcc"
 	"github.com/baidubce/bce-sdk-go/services/bcc/api"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -163,7 +163,7 @@ func resourceBaiduCloudSecurityGroupDelete(d *schema.ResourceData, meta interfac
 			return securityGroupID, bccClient.DeleteSecurityGroup(securityGroupID)
 		})
 		if err != nil {
-			if IsExceptedErrors(err, []string{bce.EINTERNAL_ERROR, SECURITYGROUP_INUSE_ERROR}) {
+			if IsExceptedErrors(err, []string{bce.EINTERNAL_ERROR, SecuritygroupInuseError, SecurityGroupInstancesAssociatedSecurityGroupCanNotBeDeleted}) {
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)

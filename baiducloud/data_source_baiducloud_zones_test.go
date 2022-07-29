@@ -3,7 +3,7 @@ package baiducloud
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
 const (
@@ -32,7 +32,7 @@ func TestAccBaiduCloudZonesDataSource(t *testing.T) {
 
 const testAccZonesDataSourceConfig = `
 data "baiducloud_zones" "default" {
-  name_regex = ".*a$"
+  name_regex = ".*e$"
 
   filter {
     name = "zone_name"

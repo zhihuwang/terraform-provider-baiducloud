@@ -2,8 +2,8 @@ package baiducloud
 
 import (
 	"github.com/baidubce/bce-sdk-go/services/vpc"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -219,6 +219,34 @@ func (s *VpcService) ListAllNatGateways(args *vpc.ListNatGatewayArgs) ([]vpc.NAT
 	}
 
 	return nats, nil
+}
+
+func (s *VpcService) ListAllNatSnatRulesWithNatID(natId string) ([]vpc.SnatRule, error) {
+	action := "List all NAT Gateway SNAT rules for NAT " + natId
+
+	snatRules := make([]vpc.SnatRule, 0)
+	args := &vpc.ListNatGatewaySnatRuleArgs{
+		NatId: natId,
+	}
+	for {
+		raw, err := s.client.WithVpcClient(func(vpcClient *vpc.Client) (i interface{}, e error) {
+			return vpcClient.ListNatGatewaySnatRules(args)
+		})
+		if err != nil {
+			return nil, err
+		}
+		addDebug(action, raw)
+
+		result, _ := raw.(*vpc.ListNatGatewaySnatRulesResult)
+		snatRules = append(snatRules, result.Rules...)
+
+		if !result.IsTruncated {
+			break
+		}
+		args.Marker = result.NextMarker
+	}
+
+	return snatRules, nil
 }
 
 func (s *VpcService) ListAllPeerConns(vpcID string) ([]vpc.PeerConn, error) {

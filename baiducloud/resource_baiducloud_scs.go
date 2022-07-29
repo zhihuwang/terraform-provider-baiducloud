@@ -1,25 +1,76 @@
 /*
 Use this resource to get information about a SCS.
 
+More information about SCS can be found in the [Developer Guide](https://cloud.baidu.com/doc/SCS/index.html).
+
 ~> **NOTE:** The terminate operation of scs does NOT take effect immediately，maybe takes for several minites.
+
 
 Example Usage
 
-```hcl
+### Memcache
+~> **NOTE:** Memcache currently does NOT support specifying `node_type`, set to `cache.n1.micro` directly.
+```terraform
 resource "baiducloud_scs" "default" {
-	billing = {
-		payment_timing = "Postpaid"
-	}
+	payment_timing = "Postpaid"
+	instance_name = "terraform-memcache"
+	engine = "memcache"
+	port = 11211
+	node_type = "cache.n1.micro"
+	cluster_type = "defalut"
+	shard_num = 2
+}
+```
+
+### Redis
+```terraform
+resource "baiducloud_scs" "default" {
+	payment_timing = "Postpaid"
 	instance_name = "terraform-redis"
-	purchase_count = 1
 	port = 6379
 	engine_version = "3.2"
 	node_type = "cache.n1.micro"
-	architecture_type = "master_slave"
+	cluster_type = "master_slave"
 	replication_num = 1
 	shard_num = 1
 }
 ```
+
+### PegaDb
+```terraform
+resource "baiducloud_scs" "default" {
+	payment_timing = "Prepaid"
+	reservation_length = 2
+	reservation_time_unit = "month"
+	instance_name = "terraform-pegadb"
+	purchase_count = 1
+	engine = "PegaDB"
+	node_type = "pega.g4s1.micro"
+	cluster_type = "cluster"
+	store_type = 3
+	disk_flavor = 60
+	port = 6379
+	replication_num = 2
+	shard_num = 1
+	proxy_num = 2
+	vpc_id = "vpc-ne32rahkaceu"
+	subnets {
+		subnet_id = "sbn-vhnqd71mivjq"
+		zone_name = "cn-bj-d"
+	}
+	replication_info {
+		availability_zone = "cn-bj-d"
+		is_master         = 1
+		subnet_id         = "sbn-vhnqd71mivjq"
+	}
+	replication_info {
+		availability_zone = "cn-bj-d"
+		is_master         = 0
+		subnet_id         = "sbn-vhnqd71mivjq"
+	}
+}
+```
+
 
 Import
 
@@ -32,13 +83,14 @@ $ terraform import baiducloud_scs.default id
 package baiducloud
 
 import (
+	"strings"
 	"time"
 
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/services/scs"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -62,44 +114,45 @@ func resourceBaiduCloudScs() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"purchase_count": {
-				Type:        schema.TypeInt,
-				Description: "Count of the instance to buy",
-				Default:     1,
-				Optional:    true,
+				Type:         schema.TypeInt,
+				Description:  "Count of the instance to buy. Must be between `1` and `10`. Defaults to `1`.",
+				Default:      1,
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(1, 10),
 			},
 			"instance_name": {
 				Type:        schema.TypeString,
-				Description: "Name of the instance. Support for uppercase and lowercase letters, numbers, Chinese and special characters, such as \"-\",\"_\",\"/\",\".\", the value must start with a letter, length 1-65.",
+				Description: "Name of the instance. Support for uppercase and lowercase letters, numbers, Chinese and special characters, such as `-`, `_`, `/`, `.`. Must start with a letter, length 1-65.",
 				Required:    true,
 			},
 			"node_type": {
 				Type:        schema.TypeString,
-				Description: "Type of the instance. Available values are cache.n1.micro, cache.n1.small, cache.n1.medium...cache.n1hs3.4xlarge.",
+				Description: "Node type of the instance. e.g. `cache.n1.micro`. To learn about supported node type, see documentation on [Supported Node Types](https://cloud.baidu.com/doc/SCS/s/1jwvxtsh0#%E5%AE%9E%E4%BE%8B%E8%A7%84%E6%A0%BC)",
 				Required:    true,
 			},
 			"shard_num": {
 				Type:        schema.TypeInt,
-				Description: "The number of instance shard. IF cluster_type is cluster, support 2/4/6/8/12/16/24/32/48/64/96/128, if cluster_type is master_slave, support 1.",
+				Description: "The number of instance shard. Defaults to `1`. To learn about supported shard number, see documentation on [Supported Node Types](https://cloud.baidu.com/doc/SCS/s/1jwvxtsh0#%E5%AE%9E%E4%BE%8B%E8%A7%84%E6%A0%BC)",
 				Default:     1,
 				Optional:    true,
 			},
 			"proxy_num": {
 				Type:        schema.TypeInt,
-				Description: "The number of instance proxy.",
+				Description: "The number of instance proxy. If `cluster_type` is `cluster`, set to the value of `shard_num` (if `shard_num` equals `1`, set to `2`). If `cluster_type` is `master_slave`, set to `0`. Defaults to `0`.",
 				Default:     0,
 				Optional:    true,
 				ForceNew:    true,
 			},
 			"replication_num": {
 				Type:        schema.TypeInt,
-				Description: "The number of instance copies.",
+				Description: "The number of instance replicas. If `cluster_type` is `cluster`, must be between `2` and `5`. If `cluster_type` is `master_slave`, must be between `1` and `5`. Defaults to `2`.",
 				Default:     2,
 				Optional:    true,
 				ForceNew:    true,
 			},
 			"port": {
 				Type:        schema.TypeInt,
-				Description: "The port used to access a instance.",
+				Description: "Port number used to access the instance. Must be between `1025` and `65534`. Defaults to `6379`.",
 				Optional:    true,
 				Default:     6379,
 				ForceNew:    true,
@@ -111,31 +164,30 @@ func resourceBaiduCloudScs() *schema.Resource {
 			},
 			"cluster_type": {
 				Type:         schema.TypeString,
-				Description:  "Type of the instance,  Available values are cluster, master_slave.",
+				Description:  "Type of the instance. If `engine` is `memcache`, must be `default`. Valid values for other engine type: `cluster`, `master_slave`.  Defaults to `master_slave`.",
 				Optional:     true,
 				ForceNew:     true,
 				Default:      "master_slave",
-				ValidateFunc: validation.StringInSlice([]string{"cluster", "master_slave"}, false),
+				ValidateFunc: validation.StringInSlice([]string{"cluster", "master_slave", "default"}, false),
 			},
 			"engine_version": {
-				Type:         schema.TypeString,
-				Description:  "Engine version of the instance. Available values are 3.2, 4.0.",
-				Optional:     true,
-				Default:      "3.2",
-				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"3.2", "4.0"}, false),
+				Type:        schema.TypeString,
+				Description: "Engine version of the instance. Must be set when `engine` is `redis`. Valid values: `3.2`, `4.0`, `5.0`, `6.0`.",
+				Optional:    true,
+				Computed:    true,
 			},
 			"engine": {
-				Type:        schema.TypeString,
-				Description: "Engine of the instance. Available values are redis, memcache.",
-				Computed:    true,
+				Type:         schema.TypeString,
+				Description:  "Engine of the instance. Valid values: `memcache`, `redis`, `PegaDB`. Defaults to `redis`.",
+				Optional:     true,
+				Default:      "redis",
+				ValidateFunc: validation.StringInSlice([]string{"memcache", "redis", "PegaDB"}, false),
 			},
 			"vpc_id": {
 				Type:        schema.TypeString,
 				Description: "ID of the specific VPC",
 				Optional:    true,
 				Computed:    true,
-				ForceNew:    true,
 			},
 			"v_net_ip": {
 				Type:        schema.TypeString,
@@ -153,42 +205,38 @@ func resourceBaiduCloudScs() *schema.Resource {
 							Type:        schema.TypeString,
 							Description: "ID of the subnet.",
 							Optional:    true,
-							Computed:    true,
-							ForceNew:    true,
 						},
 						"zone_name": {
 							Type:        schema.TypeString,
-							Description: "Zone name of the subnet.",
+							Description: "Zone name of the subnet. e.g. `cn-bj-a`.",
 							Optional:    true,
-							Computed:    true,
-							ForceNew:    true,
 						},
 					},
 				},
 			},
 			"billing": {
 				Type:        schema.TypeMap,
-				Description: "Billing information of the Scs.",
-				Required:    true,
+				Description: "**Deprecated**. Use `payment_timing`, `reservation_length`, `reservation_time_unit` instead. Billing information of the Scs.",
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"payment_timing": {
 							Type:         schema.TypeString,
-							Description:  "Payment timing of billing, which can be Prepaid or Postpaid. The default is Postpaid.",
+							Description:  "**Deprecated**. Payment timing of billing, which can be Prepaid or Postpaid. The default is Postpaid.",
 							Required:     true,
-							Default:      "Postpaid",
+							Default:      PaymentTimingPostpaid,
 							ValidateFunc: validatePaymentTiming(),
 						},
 						"reservation": {
 							Type:             schema.TypeMap,
-							Description:      "Reservation of the Scs.",
+							Description:      "**Deprecated**. Reservation of the Scs.",
 							Optional:         true,
 							DiffSuppressFunc: postPaidDiffSuppressFunc,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"reservation_length": {
 										Type:             schema.TypeInt,
-										Description:      "The reservation length that you will pay for your resource. It is valid when payment_timing is Prepaid. Valid values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 24, 36].",
+										Description:      "**Deprecated**. The reservation length that you will pay for your resource. It is valid when payment_timing is Prepaid. Valid values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 24, 36].",
 										Required:         true,
 										Default:          1,
 										ValidateFunc:     validateReservationLength(),
@@ -196,7 +244,7 @@ func resourceBaiduCloudScs() *schema.Resource {
 									},
 									"reservation_time_unit": {
 										Type:             schema.TypeString,
-										Description:      "The reservation time unit that you will pay for your resource. It is valid when payment_timing is Prepaid. The value can only be month currently, which is also the default value.",
+										Description:      "**Deprecated**. The reservation time unit that you will pay for your resource. It is valid when payment_timing is Prepaid. The value can only be month currently, which is also the default value.",
 										Required:         true,
 										Default:          "Month",
 										ValidateFunc:     validateReservationUnit(),
@@ -208,6 +256,26 @@ func resourceBaiduCloudScs() *schema.Resource {
 					},
 				},
 			},
+			"payment_timing": {
+				Type:         schema.TypeString,
+				Description:  "Payment timing of billing, Valid values: `Prepaid`, `Postpaid`.",
+				Optional:     true,
+				ValidateFunc: validatePaymentTiming(),
+			},
+			"reservation_length": {
+				Type:             schema.TypeInt,
+				Description:      "Prepaid billing reservation length, only useful when `payment_timing` is `Prepaid`. Valid values: `1`, `2`, `3`, `4`, `5`, `6`, `7`, `8`, `9`, `12`, `24`, `36`",
+				Optional:         true,
+				DiffSuppressFunc: postPaidDiffSuppressFunc,
+				ValidateFunc:     validateReservationLength(),
+			},
+			"reservation_time_unit": {
+				Type:             schema.TypeString,
+				Description:      "Prepaid billing reservation time unit, only useful when `payment_timing` is `Prepaid`. Only support `month` now.",
+				Optional:         true,
+				DiffSuppressFunc: postPaidDiffSuppressFunc,
+				ValidateFunc:     validateReservationUnit(),
+			},
 			"auto_renew_time_unit": {
 				Type:        schema.TypeString,
 				Description: "Time unit of automatic renewal, the value can be month or year. The default value is empty, indicating no automatic renewal. It is valid only when the payment_timing is Prepaid.",
@@ -215,10 +283,10 @@ func resourceBaiduCloudScs() *schema.Resource {
 			},
 			"auto_renew_time_length": {
 				Type:        schema.TypeInt,
-				Description: "The time length of automatic renewal. It is valid when payment_timing is Prepaid, and the value should be 1-9 when the auto_renew_time_unit is month and 1-3 when the auto_renew_time_unit is year. Default to 1.",
+				Description: "The time length of automatic renewal. It is valid when payment_timing is Prepaid, and the value should be 1-9 when the auto_renew_time_unit is month and 1-3 when the auto_renew_time_unit is year.",
 				Computed:    true,
 			},
-			"tags": tagsComputedSchema(),
+			"tags": tagsCreationSchema(),
 			"auto_renew": {
 				Type:        schema.TypeBool,
 				Description: "Whether to automatically renew.",
@@ -251,12 +319,7 @@ func resourceBaiduCloudScs() *schema.Resource {
 			},
 			"used_capacity": {
 				Type:        schema.TypeInt,
-				Description: "Memory capacity(GB) of the instance to be used.",
-				Computed:    true,
-			},
-			"payment_timing": {
-				Type:        schema.TypeString,
-				Description: "SCS payment timing",
+				Description: "The amount of memory(GB) used by the instance.",
 				Computed:    true,
 			},
 			"zone_names": {
@@ -266,6 +329,66 @@ func resourceBaiduCloudScs() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+			},
+			"client_auth": {
+				Type:        schema.TypeString,
+				Description: "Access password of the instance. Should be 8-16 characters, and contains at least two types of letters, numbers and symbols. Allowed symbols include `$ ^ * ( ) _ + - =`.",
+				Optional:    true,
+				Sensitive:   true,
+			},
+			"store_type": {
+				Type:        schema.TypeInt,
+				Description: "Store type of the instance. Valid values: `0`(high performance memory), `1`(ssd local disk), `3`(capacity storage, only for PegaDB).",
+				Optional:    true,
+			},
+			"enable_read_only": {
+				Type:         schema.TypeInt,
+				Description:  "Whether the copies are read only. Valid values: `1`(enabled), `2`(disabled). Defaults to `2`.",
+				Optional:     true,
+				Default:      2,
+				ValidateFunc: validation.IntInSlice([]int{1, 2}),
+			},
+			"disk_flavor": {
+				Type:         schema.TypeInt,
+				Description:  "Storage size(GB) when use PegaDB. Must be between `50` and `160`",
+				Optional:     true,
+				ValidateFunc: validation.IntBetween(50, 160),
+			},
+			"disk_type": {
+				Type:        schema.TypeString,
+				Description: "Disk type of the instance. Valid values: `cloud_hp1`, `enhanced_ssd_pl1`.",
+				Optional:    true,
+			},
+			"replication_info": {
+				Type:        schema.TypeList,
+				Description: "Replica info of the instance. Adding and removing replicas at same time in one operation is not supported.",
+				Optional:    true,
+				Computed:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"availability_zone": {
+							Type:        schema.TypeString,
+							Description: "Availability zone of the replica. e.g. `cn-bj-a`.",
+							Required:    true,
+						},
+						"subnet_id": {
+							Type:        schema.TypeString,
+							Description: "Subnet id of the replica.",
+							Required:    true,
+						},
+						"is_master": {
+							Type:        schema.TypeInt,
+							Description: "Whether the replica is master node. Valid values: `1`(master node), `0`(slave node).",
+							Required:    true,
+						},
+					},
+				},
+			},
+			"replication_resize_type": {
+				Type:         schema.TypeString,
+				Description:  "Replica resize type. Must set when change `replication_info`. Valid values: `add`, `delete`.",
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice([]string{"add", "delete"}, false),
 			},
 		},
 	}
@@ -303,18 +426,18 @@ func resourceBaiduCloudScsCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	stateConf := buildStateConf(
-		[]string{SCSStatusStatusCreating},
-		[]string{SCSStatusStatusRunning},
+		[]string{SCSStatusCreating, SCSStatusPrecreate},
+		[]string{SCSStatusRunning},
 		d.Timeout(schema.TimeoutCreate),
 		scsService.InstanceStateRefresh(d.Id(), []string{
-			SCSStatusStatusPausing,
-			SCSStatusStatusPaused,
-			SCSStatusStatusDeleted,
-			SCSStatusStatusDeleting,
-			SCSStatusStatusFailed,
-			SCSStatusStatusModifying,
-			SCSStatusStatusModifyfailed,
-			SCSStatusStatusExpire,
+			SCSStatusPausing,
+			SCSStatusPaused,
+			SCSStatusDeleted,
+			SCSStatusDeleting,
+			SCSStatusFailed,
+			SCSStatusModifying,
+			SCSStatusModifyFailed,
+			SCSStatusExpire,
 		}),
 	)
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -348,6 +471,7 @@ func resourceBaiduCloudScsRead(d *schema.ResourceData, meta interface{}) error {
 	result, _ := raw.(*scs.GetInstanceDetailResult)
 
 	d.Set("instance_name", result.InstanceName)
+	d.Set("instance_id", result.InstanceID)
 	d.Set("cluster_type", result.ClusterType)
 	d.Set("instance_status", result.InstanceStatus)
 	d.Set("engine", result.Engine)
@@ -358,7 +482,6 @@ func resourceBaiduCloudScsRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("create_time", result.InstanceCreateTime)
 	d.Set("expire_time", result.InstanceExpireTime)
 	d.Set("capacity", result.Capacity)
-
 	d.Set("used_capacity", result.UsedCapacity)
 	d.Set("payment_timing", result.PaymentTiming)
 	d.Set("zone_names", result.ZoneNames)
@@ -366,6 +489,8 @@ func resourceBaiduCloudScsRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("subnets", transSubnetsToSchema(result.Subnets))
 	d.Set("auto_renew", result.AutoRenew)
 	d.Set("tags", flattenTagsToMap(result.Tags))
+	d.Set("replication_info", transReplicationInfoToSchema(result.ReplicationInfo))
+	d.Set("shard_num", result.ShardNum)
 
 	return nil
 }
@@ -381,6 +506,32 @@ func transSubnetsToSchema(subnets []scs.Subnet) []map[string]string {
 	return subnetList
 }
 
+func transReplicationInfoToSchema(replicationInfo []scs.Replication) []map[string]interface{} {
+	var schemaList []map[string]interface{}
+	for _, replication := range replicationInfo {
+		replicationMap := make(map[string]interface{})
+		replicationMap["availability_zone"] = replication.AvailabilityZone
+		replicationMap["subnet_id"] = replication.SubnetId
+		replicationMap["is_master"] = replication.IsMaster
+		schemaList = append(schemaList, replicationMap)
+	}
+	return schemaList
+}
+
+func transSchemaToReplicationInfo(schema []interface{}) []scs.Replication {
+	replicationInfo := make([]scs.Replication, len(schema))
+	for id := range schema {
+		input := schema[id].(map[string]interface{})
+		replication := scs.Replication{
+			AvailabilityZone: input["availability_zone"].(string),
+			SubnetId:         input["subnet_id"].(string),
+			IsMaster:         input["is_master"].(int),
+		}
+		replicationInfo[id] = replication
+	}
+	return replicationInfo
+}
+
 func resourceBaiduCloudScsUpdate(d *schema.ResourceData, meta interface{}) error {
 	instanceID := d.Id()
 
@@ -391,13 +542,18 @@ func resourceBaiduCloudScsUpdate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	// update instance nodeType
-	if err := updateInstanceNodeType(d, meta, instanceID); err != nil {
+	// update instance nodeType/diskFlavor
+	if err := updateInstanceNodeTypeAndDiskFlavor(d, meta, instanceID); err != nil {
 		return err
 	}
 
 	// update instance shardNum
 	if err := updateInstanceShardNum(d, meta, instanceID); err != nil {
+		return err
+	}
+
+	// update instance replicationInfo
+	if err := updateInstanceReplicationInfo(d, meta, instanceID); err != nil {
 		return err
 	}
 
@@ -418,7 +574,7 @@ func resourceBaiduCloudScsDelete(d *schema.ResourceData, meta interface{}) error
 			return instanceId, scsClient.DeleteInstance(instanceId, buildClientToken())
 		})
 		if err != nil {
-			if IsExceptedErrors(err, []string{InvalidInstanceStatus, bce.EINTERNAL_ERROR}) {
+			if IsExceptedErrors(err, []string{InvalidInstanceStatus, bce.EINTERNAL_ERROR, ReleaseInstanceFailed}) {
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)
@@ -434,11 +590,12 @@ func resourceBaiduCloudScsDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	stateConf := buildStateConf(
-		[]string{SCSStatusStatusRunning,
-			SCSStatusStatusDeleting,
-			SCSStatusStatusPausing},
-		[]string{SCSStatusStatusPaused,
-			SCSStatusStatusDeleted},
+		[]string{SCSStatusRunning,
+			SCSStatusDeleting,
+			SCSStatusPausing},
+		[]string{SCSStatusPaused,
+			SCSStatusDeleted,
+			SCSStatusIsolated},
 		d.Timeout(schema.TimeoutDelete),
 		scsService.InstanceStateRefresh(instanceId, []string{}),
 	)
@@ -454,6 +611,7 @@ func buildBaiduCloudScsArgs(d *schema.ResourceData, meta interface{}) (*scs.Crea
 		ClientToken: buildClientToken(),
 	}
 
+	// billing is deprecated
 	if v, ok := d.GetOk("billing"); ok {
 		billing := v.(map[string]interface{})
 		billingRequest := scs.Billing{
@@ -464,7 +622,7 @@ func buildBaiduCloudScsArgs(d *schema.ResourceData, meta interface{}) (*scs.Crea
 			paymentTiming := p.(string)
 			billingRequest.PaymentTiming = paymentTiming
 		}
-		if billingRequest.PaymentTiming == "Postpaid" {
+		if billingRequest.PaymentTiming == PaymentTimingPrepaid {
 			if r, ok := billing["reservation"]; ok {
 				reservation := r.(map[string]interface{})
 				if reservationLength, ok := reservation["reservation_length"]; ok {
@@ -474,17 +632,38 @@ func buildBaiduCloudScsArgs(d *schema.ResourceData, meta interface{}) (*scs.Crea
 					billingRequest.Reservation.ReservationTimeUnit = reservationTimeUnit.(string)
 				}
 			}
-			// if the field is set, then auto-renewal is effective.
-			if v, ok := d.GetOk("auto_renew_time_unit"); ok {
-				request.AutoRenewTimeUnit = v.(string)
+		}
+		request.Billing = billingRequest
+	}
 
-				if v, ok := d.GetOk("auto_renew_time_length"); ok {
-					request.AutoRenewTime = v.(int)
-				}
+	if paymentTiming, ok := d.GetOk("payment_timing"); ok {
+		billingRequest := scs.Billing{
+			PaymentTiming: paymentTiming.(string),
+			Reservation:   &scs.Reservation{},
+		}
+		if billingRequest.PaymentTiming == PaymentTimingPrepaid {
+			if length, ok := d.GetOk("reservation_length"); ok {
+				billingRequest.Reservation.ReservationLength = length.(int)
+			}
+			if timeUnit, ok := d.GetOk("reservation_time_unit"); ok {
+				billingRequest.Reservation.ReservationTimeUnit = timeUnit.(string)
 			}
 		}
-
 		request.Billing = billingRequest
+	}
+
+	if request.Billing.PaymentTiming == "" {
+		return nil, Error(InvalidInputField, "payment_timing")
+	}
+
+	if request.Billing.PaymentTiming == PaymentTimingPrepaid {
+		// if the field is set, then auto-renewal is effective.
+		if v, ok := d.GetOk("auto_renew_time_unit"); ok {
+			request.AutoRenewTimeUnit = v.(string)
+			if v, ok := d.GetOk("auto_renew_time_length"); ok {
+				request.AutoRenewTime = v.(int)
+			}
+		}
 	}
 
 	if purchaseCount, ok := d.GetOk("purchase_count"); ok {
@@ -495,8 +674,8 @@ func buildBaiduCloudScsArgs(d *schema.ResourceData, meta interface{}) (*scs.Crea
 		request.InstanceName = instanceName.(string)
 	}
 
-	if node_type, ok := d.GetOk("node_type"); ok {
-		request.NodeType = node_type.(string)
+	if nodeType, ok := d.GetOk("node_type"); ok {
+		request.NodeType = nodeType.(string)
 	}
 
 	if shardNum, ok := d.GetOk("shard_num"); ok {
@@ -532,19 +711,49 @@ func buildBaiduCloudScsArgs(d *schema.ResourceData, meta interface{}) (*scs.Crea
 		subnetRequests := make([]scs.Subnet, len(subnetList))
 		for id := range subnetList {
 			subnet := subnetList[id].(map[string]interface{})
-
-			cdsRequest := scs.Subnet{
+			subnetRequest := scs.Subnet{
 				SubnetID: subnet["subnet_id"].(string),
 				ZoneName: subnet["zone_name"].(string),
 			}
-
-			subnetRequests[id] = cdsRequest
+			subnetRequests[id] = subnetRequest
 		}
 		request.Subnets = subnetRequests
 	}
 
-	return request, nil
+	if engine, ok := d.GetOk("engine"); ok {
+		request.Engine = SCSEngineIntegers()[engine.(string)]
+	}
 
+	if diskFlavor, ok := d.GetOk("disk_flavor"); ok {
+		request.DiskFlavor = diskFlavor.(int)
+	}
+
+	if diskType, ok := d.GetOk("disk_type"); ok {
+		request.DiskType = diskType.(string)
+	}
+
+	if clientAuth, ok := d.GetOk("client_auth"); ok {
+		request.ClientAuth = clientAuth.(string)
+	}
+
+	if storeType, ok := d.GetOk("store_type"); ok {
+		request.StoreType = storeType.(int)
+	}
+
+	if enableReadOnly, ok := d.GetOk("enable_read_only"); ok {
+		request.EnableReadOnly = enableReadOnly.(int)
+	}
+
+	if info, ok := d.GetOk("replication_info"); ok {
+		inputList := info.([]interface{})
+		request.ReplicationInfo = transSchemaToReplicationInfo(inputList)
+	}
+
+	if tags, ok := d.GetOk("tags"); ok {
+		request.Tags = tranceTagMapToModel(tags.(map[string]interface{}))
+	}
+
+	return request, nil
 }
 
 func updateScsInstanceName(d *schema.ResourceData, meta interface{}, instanceID string) error {
@@ -580,14 +789,22 @@ func updateScsInstanceName(d *schema.ResourceData, meta interface{}, instanceID 
 	return nil
 }
 
-func updateInstanceNodeType(d *schema.ResourceData, meta interface{}, instanceID string) error {
-	action := "Update scs nodeType " + instanceID
+func updateInstanceNodeTypeAndDiskFlavor(d *schema.ResourceData, meta interface{}, instanceID string) error {
+	action := "Update scs nodeType/diskFlavor " + instanceID
 	client := meta.(*connectivity.BaiduClient)
 	scsService := ScsService{client}
 
-	if d.HasChange("node_type") && "master_slave" == d.Get("cluster_type").(string) {
+	if d.HasChange("node_type") || (d.HasChange("disk_flavor") && "PegaDB" == d.Get("engine").(string)) {
+		shardNum := d.Get("shard_num")
+		if d.HasChange("shard_num") {
+			shardNum, _ = d.GetChange("shard_num")
+		}
+
 		args := &scs.ResizeInstanceArgs{
-			NodeType: d.Get("node_type").(string),
+			ClientToken: buildClientToken(),
+			NodeType:    d.Get("node_type").(string),
+			DiskFlavor:  d.Get("disk_flavor").(int),
+			ShardNum:    shardNum.(int),
 		}
 
 		addDebug(action, args)
@@ -609,8 +826,8 @@ func updateInstanceNodeType(d *schema.ResourceData, meta interface{}, instanceID
 		}
 
 		stateConf := buildStateConf(
-			[]string{SCSStatusStatusModifying},
-			[]string{SCSStatusStatusRunning},
+			[]string{SCSStatusModifying},
+			[]string{SCSStatusRunning},
 			d.Timeout(schema.TimeoutUpdate),
 			scsService.InstanceStateRefresh(d.Id(), []string{}),
 		)
@@ -619,6 +836,7 @@ func updateInstanceNodeType(d *schema.ResourceData, meta interface{}, instanceID
 		}
 
 		d.SetPartial("node_type")
+		d.SetPartial("disk_flavor")
 	}
 
 	return nil
@@ -631,7 +849,10 @@ func updateInstanceShardNum(d *schema.ResourceData, meta interface{}, instanceID
 
 	if d.HasChange("shard_num") && "cluster" == d.Get("cluster_type").(string) {
 		args := &scs.ResizeInstanceArgs{
-			ShardNum: d.Get("shard_num").(int),
+			ClientToken: buildClientToken(),
+			NodeType:    d.Get("node_type").(string),
+			DiskFlavor:  d.Get("disk_flavor").(int),
+			ShardNum:    d.Get("shard_num").(int),
 		}
 
 		addDebug(action, args)
@@ -653,8 +874,8 @@ func updateInstanceShardNum(d *schema.ResourceData, meta interface{}, instanceID
 		}
 
 		stateConf := buildStateConf(
-			[]string{SCSStatusStatusModifying},
-			[]string{SCSStatusStatusRunning},
+			[]string{SCSStatusModifying},
+			[]string{SCSStatusRunning},
 			d.Timeout(schema.TimeoutCreate),
 			scsService.InstanceStateRefresh(d.Id(), []string{}),
 		)
@@ -662,6 +883,54 @@ func updateInstanceShardNum(d *schema.ResourceData, meta interface{}, instanceID
 			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_scs", action, BCESDKGoERROR)
 		}
 		d.SetPartial("shard_num")
+	}
+
+	return nil
+}
+
+func updateInstanceReplicationInfo(d *schema.ResourceData, meta interface{}, instanceID string) error {
+	action := "Update scs replicationInfo " + instanceID
+	client := meta.(*connectivity.BaiduClient)
+	scsService := ScsService{client}
+
+	if d.HasChange("replication_info") {
+		resizeType, ok := d.GetOk("replication_resize_type")
+		if !ok {
+			return Error(InvalidInputField, "replication_resize_type")
+		}
+		isAddReplication := strings.HasPrefix(resizeType.(string), "add")
+
+		args := &scs.ReplicationArgs{
+			ResizeType:      d.Get("replication_resize_type").(string),
+			ReplicationInfo: transSchemaToReplicationInfo(d.Get("replication_info").([]interface{})),
+		}
+
+		addDebug(action, args)
+		err := resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
+			_, err := client.WithScsClient(func(scsClient *scs.Client) (interface{}, error) {
+				if isAddReplication {
+					return nil, scsClient.AddReplication(instanceID, args)
+				}
+				return nil, scsClient.DeleteReplication(instanceID, args)
+			})
+			if err != nil {
+				if IsExceptedErrors(err, []string{InvalidInstanceStatus, OperationException, bce.EINTERNAL_ERROR}) {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_scs", action, BCESDKGoERROR)
+		}
+
+		stateConf := buildStateConf([]string{SCSStatusModifying}, []string{SCSStatusRunning}, d.Timeout(schema.TimeoutCreate), scsService.InstanceStateRefresh(d.Id(), []string{}))
+		if _, err := stateConf.WaitForState(); err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_scs", action, BCESDKGoERROR)
+		}
+		d.SetPartial("replication_info")
 	}
 
 	return nil

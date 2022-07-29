@@ -1,4 +1,68 @@
-## 1.12.0 (Unreleased)
+	## 1.15.0 (Unreleased)
+## 1.14.0 (July 11, 2022)
+ENHANCEMENTS:
+- resource/baiducloud_scs: Attribute `engine` now supports new value `PegaDB`
+- resource/baiducloud_scs: Attribute `tag` now supports specifying when creating.
+- resource/baiducloud_scs: Add new attributes `client_auth`, `store_type`, `enable_read_only`, `disk_type`, `replication_resize_type`, `reservation_length`, `reservation_time_unit`
+- resource/baiducloud_scs: Add new attributes `disk_flavor`, `replication_info`, and both support modification
+- resource/baiducloud_scs: Remove `ForceNew` behavior from attribute `engine_version`, `shard_num`, `vpc_id`
+- resource/baiducloud_instance: Remove `ForceNew` behavior from attribute `card_count` 
+
+BUG FIXES:
+- resource/baiducloud_scs: Attribute `billing` is deprecated, use `payment_timing`, `reservation_length`, `reservation_time_unit` instead.
+
+## 1.13.0 (July 07, 2022)
+ENHANCEMENTS:
+- BCC/VPC related service now support region `bd`(BaoDing), `fsh`(ShangHai), `hkg`(HongKong), `sin`(Singapore) 
+
+## 1.12.9 (June 30, 2022)
+NOTES:
+- ADD bcc max parallelism note
+
+## 1.12.8 (June 30, 2022)
+NOTES:
+- Repair bcc instance markdown
+
+## 1.12.7 (June 30, 2022)
+NOTES:
+- Improve BCC purchasing efficiency
+
+## 1.12.6 (June 01, 2022)
+NOTES:
+- BCC add user_data
+- Repair markdown
+
+## 1.12.5 (May 26, 2022)
+NOTES:
+- Add nat_snat_rule
+- Update go sdk
+- Update eip
+
+## 1.12.4 (May 24, 2022)
+NOTES:
+- add terraform-registry-manifest.json
+
+## 1.12.3 (May 24, 2022)
+NOTES:
+- update tag
+
+## 1.12.2 (May 24, 2022)
+NOTES:
+- update Release
+
+## 1.12.1 (May 23, 2022)
+NOTES:
+- Repair SCS Document
+
+## 1.12.0 (August 12, 2021)
+
+NOTES:
+- Repair and delete the security group and check whether deletion is allowed
+- When repairing and deleting VPC, check whether deletion is allowed
+- After adding and modifying the BCC instance subnet, the status is changesubnet
+- SCS delete and add isolated status
+- The added status during BCC creation is the deleted instantaneous status
+
 ## 1.11.3 (April 23, 2021)
 
 NOTES:

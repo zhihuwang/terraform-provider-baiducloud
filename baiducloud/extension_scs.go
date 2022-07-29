@@ -1,19 +1,29 @@
 package baiducloud
 
 const (
-	SCSStatusStatusCreating       = "Creating"
-	SCSStatusStatusRunning        = "Running"
-	SCSStatusStatusRebooting      = "Rebooting"
-	SCSStatusStatusPausing        = "Pausing"
-	SCSStatusStatusPaused         = "Paused"
-	SCSStatusStatusDeleted        = "Deleted"
-	SCSStatusStatusDeleting       = "Deleting"
-	SCSStatusStatusFailed         = "Failed"
-	SCSStatusStatusModifying      = "Modifying"
-	SCSStatusStatusModifyfailed   = "Modifyfailed"
-	SCSStatusStatusBackuping      = "Backuping"
-	SCSStatusStatusAztransforming = "Aztransforming"
-	SCSStatusStatusExpire         = "Expire"
-	SCSStatusStatusFlushing       = "Flushing"
-	SCSStatusStatusFlushFailed    = "Flush failed"
+	SCSStatusPrecreate      = "Precreat"
+	SCSStatusCreating       = "Creating"
+	SCSStatusRunning        = "Running"
+	SCSStatusRebooting      = "Rebooting"
+	SCSStatusPausing        = "Pausing"
+	SCSStatusPaused         = "Paused"
+	SCSStatusDeleted        = "Deleted"
+	SCSStatusDeleting       = "Deleting"
+	SCSStatusFailed         = "Failed"
+	SCSStatusModifying      = "Modifying"
+	SCSStatusModifyFailed   = "Modifyfailed"
+	SCSStatusBackuping      = "Backuping"
+	SCSStatusAzTransforming = "Aztransforming"
+	SCSStatusExpire         = "Expire"
+	SCSStatusFlushing       = "Flushing"
+	SCSStatusFlushFailed    = "Flush failed"
+	SCSStatusIsolated       = "isolated"
 )
+
+func SCSEngineIntegers() map[string]int {
+	return map[string]int{
+		"memcache": 1,
+		"redis":    2,
+		"PegaDB":   3,
+	}
+}

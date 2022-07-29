@@ -16,17 +16,17 @@ import (
 	"time"
 
 	"github.com/baidubce/bce-sdk-go/util"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/mitchellh/go-homedir"
 )
 
-// timeout for common product, bcc e.g.
+// DefaultTimeout timeout for common product, bcc e.g.
 const DefaultTimeout = 180 * time.Second
 const DefaultDebugMsg = "\n*************** %s Response *************** \n%+v\n%s******************************\n\n"
 
 const (
-	PAYMENT_TIMING_POSTPAID = "Postpaid"
-	PAYMENT_TIMING_PREPAID  = "Prepaid"
+	PaymentTimingPostpaid = "Postpaid"
+	PaymentTimingPrepaid  = "Prepaid"
 )
 
 func debugOn() bool {
@@ -41,12 +41,12 @@ func debugOn() bool {
 func addDebug(action, content interface{}) {
 	if debugOn() {
 		trace := "[DEBUG TRACE]:\n"
-		for skip := 1; skip < 5; skip++ {
+		for skip := 1; skip < 3; skip++ {
 			_, filepath, line, _ := runtime.Caller(skip)
 			trace += fmt.Sprintf("%s:%d\n", filepath, line)
 		}
 
-		fmt.Printf(DefaultDebugMsg, action, content, trace)
+		//fmt.Printf(DefaultDebugMsg, action, content, trace)
 		log.Printf(DefaultDebugMsg, action, content, trace)
 	}
 }

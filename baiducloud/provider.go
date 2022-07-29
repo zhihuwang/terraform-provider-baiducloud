@@ -82,6 +82,7 @@ VPC Resources
   baiducloud_route_rule
   baiducloud_acl
   baiducloud_nat_gateway
+  baiducloud_nat_snat_rule
   baiducloud_peer_conn
   baiducloud_peer_conn_acceptor
 
@@ -125,9 +126,9 @@ import (
 	"strings"
 
 	"github.com/baidubce/bce-sdk-go/util/log"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/hashcode"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -172,6 +173,7 @@ func Provider() terraform.ResourceProvider {
 			"baiducloud_route_rules":                    dataSourceBaiduCloudRouteRules(),
 			"baiducloud_acls":                           dataSourceBaiduCloudAcls(),
 			"baiducloud_nat_gateways":                   dataSourceBaiduCloudNatGateways(),
+			"baiducloud_nat_snat_rules":                 dataSourceBaiduCloudNatSnatRules(),
 			"baiducloud_peer_conns":                     dataSourceBaiduCloudPeerConns(),
 			"baiducloud_bos_buckets":                    dataSourceBaiduCloudBosBuckets(),
 			"baiducloud_bos_bucket_objects":             dataSourceBaiduCloudBosBucketObjects(),
@@ -213,7 +215,6 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"baiducloud_instance":                     resourceBaiduCloudInstance(),
-			"baiducloud_deployset":                    resourceBaiduCloudDeployset(),
 			"baiducloud_cds":                          resourceBaiduCloudCDS(),
 			"baiducloud_cds_attachment":               resourceBaiduCloudCDSAttachment(),
 			"baiducloud_snapshot":                     resourceBaiduCloudSnapshot(),
@@ -227,14 +228,12 @@ func Provider() terraform.ResourceProvider {
 			"baiducloud_eip_association":              resourceBaiduCloudEipAssociation(),
 			"baiducloud_acl":                          resourceBaiduCloudAcl(),
 			"baiducloud_nat_gateway":                  resourceBaiduCloudNatGateway(),
+			"baiducloud_nat_snat_rule":                resourceBaiduCloudNatSnatRule(),
 			"baiducloud_appblb":                       resourceBaiduCloudAppBLB(),
 			"baiducloud_peer_conn":                    resourceBaiduCloudPeerConn(),
 			"baiducloud_peer_conn_acceptor":           resourceBaiduCloudPeerConnAcceptor(),
 			"baiducloud_appblb_server_group":          resourceBaiduCloudAppBlbServerGroup(),
 			"baiducloud_appblb_listener":              resourceBaiduCloudAppBlbListener(),
-			"baiducloud_blb":                          resourceBaiduCloudBLB(),
-			"baiducloud_blb_listener":                 resourceBaiduCloudBLBListener(),
-			"baiducloud_blb_backend":                  resourceBaiduCloudBLBBackend(),
 			"baiducloud_bos_bucket":                   resourceBaiduCloudBosBucket(),
 			"baiducloud_bos_bucket_object":            resourceBaiduCloudBucketObject(),
 			"baiducloud_cert":                         resourceBaiduCloudCert(),
@@ -247,7 +246,6 @@ func Provider() terraform.ResourceProvider {
 			"baiducloud_ccev2_cluster":                resourceBaiduCloudCCEv2Cluster(),
 			"baiducloud_ccev2_instance":               resourceBaiduCloudCCEv2Instance(),
 			"baiducloud_ccev2_instance_group":         resourceBaiduCloudCCEv2InstanceGroup(),
-			"baiducloud_ccev2_instance_group_replica": resourceBaiduCloudCCEv2InstanceGroupReplica(),
 			"baiducloud_rds_instance":                 resourceBaiduCloudRdsInstance(),
 			"baiducloud_rds_readonly_instance":        resourceBaiduCloudRdsReadOnlyInstance(),
 			"baiducloud_rds_account":                  resourceBaiduCloudRdsAccount(),
@@ -260,6 +258,11 @@ func Provider() terraform.ResourceProvider {
 			"baiducloud_iam_group_policy_attachment":  resourceBaiduCloudIamGroupPolicyAttachment(),
 			"baiducloud_bbc_instance":                 resourceBaiduCloudBbcInstance(),
 			"baiducloud_es_cluster":                   resourceBaiduCloudESCluster(),
+			"baiducloud_ccev2_instance_group_replica": resourceBaiduCloudCCEv2InstanceGroupReplica(),
+			"baiducloud_blb":                          resourceBaiduCloudBLB(),
+			"baiducloud_blb_listener":                 resourceBaiduCloudBLBListener(),
+			"baiducloud_blb_backend":                  resourceBaiduCloudBLBBackend(),
+			"baiducloud_deployset":                    resourceBaiduCloudDeployset(),
 		},
 
 		ConfigureFunc: providerConfigure,

@@ -73,6 +73,8 @@ const (
 	DefaultSURegionRdsEndPoint = "rds.su.baidubce.com"
 	DefaultSURegionBesEndPoint = "bes.su.baidubce.com"
 
+	DefaultFSHRegionBccEndPoint = "bcc.fsh.baidubce.com"
+
 	DefaultFWHRegionBccEndPoint = "bcc.fwh.baidubce.com"
 	DefaultFWHRegionEipEndPoint = "eip.fwh.baidubce.com"
 	DefaultFWHRegionBlbEndPoint = "blb.fwh.baidubce.com"
@@ -82,6 +84,10 @@ const (
 	DefaultFWHRegionScsEndPoint = "redis.fwh.baidubce.com"
 	DefaultFWHRegionRdsEndPoint = "rds.fwh.baidubce.com"
 	DefaultFWHRegionBesEndPoint = "bes.fwh.baidubce.com"
+
+	DefaultHKGRegionBccEndPoint = "bcc.hkg.baidubce.com"
+
+	DefaultSINRegionBccEndPoint = "bcc.sin.baidubce.com"
 
 	DefaultCERTEndPoint = "certificate.baidubce.com"
 	DefaultIAMEndPoint  = "iam.bj.baidubce.com"
@@ -94,7 +100,10 @@ var (
 		RegionBaoDing:   RegionBDEndpoints,
 		RegionGuangZhou: RegionGZEndpoints,
 		RegionSuZhou:    RegionSUEndpoints,
+		RegionShangHai:  RegionFSHEndpoints,
 		RegionWuHan:     RegionFWHEndpoints,
+		RegionHongKong:  RegionHKGEndpoints,
+		RegionSingapore: RegionSINEndpoints,
 	}
 
 	// Region BJ Service Endpoints
@@ -115,7 +124,7 @@ var (
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
-	// Region BJ Service Endpoints
+	// Region BD Service Endpoints
 	RegionBDEndpoints = map[ServiceCode]string{
 		BCCCode:    DefaultBDRegionBccEndPoint,
 		VPCCode:    DefaultBDRegionBccEndPoint,
@@ -170,6 +179,12 @@ var (
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
+	// Region FSH Service Endpoints
+	RegionFSHEndpoints = map[ServiceCode]string{
+		BCCCode: DefaultFSHRegionBccEndPoint,
+		VPCCode: DefaultFSHRegionBccEndPoint,
+	}
+
 	// Region FWH Service Endpoints
 	RegionFWHEndpoints = map[ServiceCode]string{
 		BCCCode:    DefaultFWHRegionBccEndPoint,
@@ -187,9 +202,21 @@ var (
 		BESCode:    DefaultFWHRegionBesEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
+
+	// Region HKG Service Endpoints
+	RegionHKGEndpoints = map[ServiceCode]string{
+		BCCCode: DefaultHKGRegionBccEndPoint,
+		VPCCode: DefaultHKGRegionBccEndPoint,
+	}
+
+	// Region SIN Service Endpoints
+	RegionSINEndpoints = map[ServiceCode]string{
+		BCCCode: DefaultSINRegionBccEndPoint,
+		VPCCode: DefaultSINRegionBccEndPoint,
+	}
 )
 
-//xml
+// Endpoints xml struct
 type Endpoints struct {
 	Endpoint []Endpoint `xml:"Endpoint"`
 }

@@ -32,6 +32,8 @@ const (
 	ResourceNotFound          = "ResourceNotfound"
 	ResourceNotFound2         = "ResourceNotFound"
 	ResourceNotFoundException = "ResourceNotFoundException"
+	// ResourceNeedRelease is resource need release
+	ResourceNeedRelease = "ResourceNeedRelease"
 
 	// bcc error
 	OperationDenied      = "OperationDenied"
@@ -54,6 +56,18 @@ const (
 	// scs error
 	InvalidInstanceStatus = "InvalidInstanceStatus"
 	OperationException    = "OperationException"
+	ReleaseInstanceFailed = "ReleaseInstanceFailed"
+
+	// NotAllowOperateSubnet not allow operate subnet
+	NotAllowOperateSubnet = "NotAllowOperateSubnet"
+	// NotAllowDeleteVpc is not allow delete vpc
+	NotAllowDeleteVpc = "NotAllowDeleteVpc"
+
+	// 	SecurityGroup InstancesAssociatedSecurityGroupCanNotBeDeleted
+	SecurityGroupInstancesAssociatedSecurityGroupCanNotBeDeleted = "SecurityGroup.InstancesAssociatedSecurityGroupCanNotBeDeleted"
+
+	InstanceStateChangeSubnet = "ChangeSubnet"
+	InstanceStatusDeleted     = "Deleted"
 )
 
 const (
@@ -62,6 +76,7 @@ const (
 )
 
 const GetFailTargetStatus = "Get Fail target status: %s."
+const InvalidInputField = "Input field %s is invalid."
 
 var (
 	// bcc error
@@ -84,7 +99,7 @@ var (
 	// cce error
 	CceClusterNotFound = []string{CceNotFound}
 
-	//ccev2 error
+	// ccev2 error
 	Ccev2NotFound = []string{Ccev2ClusterNotFound, Ccev2InstanceGroupNotFound, Ccev2InstanceNotFound}
 )
 
@@ -94,7 +109,7 @@ var NotFoundErrorList = []string{
 	Ccev2ClusterNotFound, Ccev2InstanceGroupNotFound, Ccev2InstanceNotFound,
 }
 
-// An Error to wrap the different erros
+// WrapErrorOld An Error to wrap the different erros
 type WrapErrorOld struct {
 	originError error
 	errorSource ErrorSource

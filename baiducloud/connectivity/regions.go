@@ -10,8 +10,11 @@ const (
 
 	// Regions
 	RegionBeiJing   = Region("bj")
-	RegionSuZhou    = Region("su")
 	RegionGuangZhou = Region("gz")
+	RegionSuZhou    = Region("su")
+	RegionShangHai  = Region("fsh")
 	RegionWuHan     = Region("fwh")
 	RegionBaoDing   = Region("bd")
+	RegionHongKong  = Region("hkg")
+	RegionSingapore = Region("sin")
 )

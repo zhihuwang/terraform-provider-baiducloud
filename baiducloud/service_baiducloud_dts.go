@@ -1,12 +1,13 @@
 package baiducloud
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/services/dts"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
 
@@ -224,7 +225,10 @@ func (e *DtsService) FlattenDtsModelsToMap(dtss []dts.DtsTaskMeta) []map[string]
 func flattenIncrementToMap(dynamicInfo dts.DynamicInfo) map[string]string {
 	increment := dynamicInfo.Increment
 	result := make(map[string]string)
-	result[increment.Position] = increment.SyncStatus
+
+	data, _ := json.Marshal(increment)
+	json.Unmarshal(data, &result)
+
 	return result
 }
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/baidubce/bce-sdk-go/services/bcc"
 	"github.com/baidubce/bce-sdk-go/services/bcc/api"
-	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -22,6 +22,7 @@ func (s *BccService) InstanceStateRefresh(instanceId string) resource.StateRefre
 		raw, err := s.client.WithBccClient(func(bccClient *bcc.Client) (i interface{}, e error) {
 			return bccClient.GetInstanceDetail(instanceId)
 		})
+
 		addDebug(action, raw)
 		if err != nil {
 			if NotFoundError(err) {

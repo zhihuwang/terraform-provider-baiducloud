@@ -26,8 +26,8 @@ import (
 
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/services/vpc"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
@@ -192,7 +192,7 @@ func resourceBaiduCloudVpcDelete(d *schema.ResourceData, meta interface{}) error
 		})
 		addDebug(action, raw)
 		if err != nil {
-			if IsExceptedErrors(err, []string{bce.EINTERNAL_ERROR, SUBNET_INUSE_ERROR}) {
+			if IsExceptedErrors(err, []string{bce.EINTERNAL_ERROR, SubnetInuseError, NotAllowDeleteVpc}) {
 				return resource.RetryableError(err)
 			}
 			return resource.NonRetryableError(err)

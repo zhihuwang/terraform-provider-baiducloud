@@ -3,11 +3,11 @@ package baiducloud
 import (
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func postPaidDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
-	return d.Get("payment_timing").(string) == "Postpaid"
+	return d.Get("payment_timing").(string) == PaymentTimingPostpaid
 }
 
 func appServerGroupPortHealthCheckHTTPSuppressFunc(k, old, new string, d *schema.ResourceData) bool {

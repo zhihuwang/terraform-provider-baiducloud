@@ -1,6 +1,7 @@
 package connectivity
 
 import (
+	"fmt"
 	"os"
 	"sync"
 
@@ -55,6 +56,8 @@ type BaiduClient struct {
 type ApiVersion string
 
 var goSdkMutex = sync.RWMutex{} // The Go SDK is not thread-safe
+
+var providerVersion = "1.14.0"
 
 // Client for BaiduCloudClient
 func (c *Config) Client() (*BaiduClient, error) {
@@ -164,21 +167,20 @@ func (client *BaiduClient) WithBesClient(do func(*bes.Client) (interface{}, erro
 
 func (client *BaiduClient) WithBccClient(do func(*bcc.Client) (interface{}, error)) (interface{}, error) {
 	goSdkMutex.Lock()
-	defer goSdkMutex.Unlock()
-
 	// Initialize the BCC client if necessary
 	if client.bccConn == nil {
 		client.WithCommonClient(BCCCode)
 		bccClient, err := bcc.NewClient(client.Credentials.AccessKeyId, client.Credentials.SecretAccessKey, client.Endpoint)
 		if err != nil {
+			goSdkMutex.Unlock()
 			return nil, err
 		}
 		client.WithProxy(bccClient.Config)
 		bccClient.Config.Credentials = client.Credentials
-
+		bccClient.Config.UserAgent = buildUserAgent()
 		client.bccConn = bccClient
 	}
-
+	goSdkMutex.Unlock()
 	return do(client.bccConn)
 }
 
@@ -195,7 +197,7 @@ func (client *BaiduClient) WithVpcClient(do func(*vpc.Client) (interface{}, erro
 		}
 		client.WithProxy(vpcClient.Config)
 		vpcClient.Config.Credentials = client.Credentials
-
+		vpcClient.Config.UserAgent = buildUserAgent()
 		client.vpcConn = vpcClient
 	}
 
@@ -215,7 +217,7 @@ func (client *BaiduClient) WithEipClient(do func(*eip.Client) (interface{}, erro
 		}
 		client.WithProxy(eipClient.Config)
 		eipClient.Config.Credentials = client.Credentials
-
+		eipClient.Config.UserAgent = buildUserAgent()
 		client.eipConn = eipClient
 	}
 
@@ -235,7 +237,7 @@ func (client *BaiduClient) WithAppBLBClient(do func(*appblb.Client) (interface{}
 		}
 		client.WithProxy(appBlbClient.Config)
 		appBlbClient.Config.Credentials = client.Credentials
-
+		appBlbClient.Config.UserAgent = buildUserAgent()
 		client.appBlbConn = appBlbClient
 	}
 
@@ -275,7 +277,7 @@ func (client *BaiduClient) WithBosClient(do func(*bos.Client) (interface{}, erro
 		}
 		client.WithProxy(bosClient.Config)
 		bosClient.Config.Credentials = client.Credentials
-
+		bosClient.Config.UserAgent = buildUserAgent()
 		client.bosConn = bosClient
 	}
 
@@ -295,7 +297,7 @@ func (client *BaiduClient) WithCertClient(do func(*cert.Client) (interface{}, er
 		}
 		client.WithProxy(certClient.Config)
 		certClient.Config.Credentials = client.Credentials
-
+		certClient.Config.UserAgent = buildUserAgent()
 		client.certConn = certClient
 	}
 
@@ -315,7 +317,7 @@ func (client *BaiduClient) WithCFCClient(do func(*cfc.Client) (interface{}, erro
 		}
 		client.WithProxy(cfcClient.Config)
 		cfcClient.Config.Credentials = client.Credentials
-
+		cfcClient.Config.UserAgent = buildUserAgent()
 		client.cfcConn = cfcClient
 	}
 
@@ -335,7 +337,7 @@ func (client *BaiduClient) WithScsClient(do func(*scs.Client) (interface{}, erro
 		}
 		client.WithProxy(scsClient.Config)
 		scsClient.Config.Credentials = client.Credentials
-
+		scsClient.Config.UserAgent = buildUserAgent()
 		client.scsConn = scsClient
 	}
 
@@ -355,7 +357,7 @@ func (client *BaiduClient) WithCCEClient(do func(*cce.Client) (interface{}, erro
 		}
 		client.WithProxy(cceClient.Config)
 		cceClient.Config.Credentials = client.Credentials
-
+		cceClient.Config.UserAgent = buildUserAgent()
 		client.cceConn = cceClient
 	}
 
@@ -375,7 +377,7 @@ func (client *BaiduClient) WithCCEv2Client(do func(*ccev2.Client) (interface{}, 
 		}
 		client.WithProxy(ccev2Client.Config)
 		ccev2Client.Config.Credentials = client.Credentials
-
+		ccev2Client.Config.UserAgent = buildUserAgent()
 		client.ccev2Conn = ccev2Client
 	}
 
@@ -395,7 +397,7 @@ func (client *BaiduClient) WithRdsClient(do func(*rds.Client) (interface{}, erro
 		}
 		client.WithProxy(rdsClient.Config)
 		rdsClient.Config.Credentials = client.Credentials
-
+		rdsClient.Config.UserAgent = buildUserAgent()
 		client.rdsConn = rdsClient
 	}
 
@@ -415,6 +417,7 @@ func (client *BaiduClient) WithDtsClient(do func(*dts.Client) (interface{}, erro
 			return nil, err
 		}
 		client.WithProxy(dtsClient.Config)
+		dtsClient.Config.UserAgent = buildUserAgent()
 		client.dtsConn = dtsClient
 	}
 
@@ -434,8 +437,13 @@ func (client *BaiduClient) WithIamClient(do func(*iam.Client) (interface{}, erro
 			return nil, err
 		}
 		client.WithProxy(iamClient.Config)
+		iamClient.Config.UserAgent = buildUserAgent()
 		client.iamConn = iamClient
 	}
 
 	return do(client.iamConn)
+}
+
+func buildUserAgent() string {
+	return fmt.Sprintf("terraform-provider-baiducloud/%s", providerVersion)
 }
