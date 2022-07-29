@@ -13,6 +13,7 @@ type ServiceCode string
 
 const (
 	BBCCode    = ServiceCode("BBC")
+	BESCode    = ServiceCode("BES")
 	BCCCode    = ServiceCode("BCC")
 	VPCCode    = ServiceCode("VPC")
 	EIPCode    = ServiceCode("EIP")
@@ -39,6 +40,7 @@ const (
 	DefaultBJRegionScsEndPoint = "redis.bj.baidubce.com"
 	DefaultBJRegionRdsEndPoint = "rds.bj.baidubce.com"
 	DefaultBJRegionDtsEndPoint = "rds.bj.baidubce.com"
+	DefaultBJRegionBesEndPoint = "bes.bj.baidubce.com"
 
 	DefaultBDRegionBccEndPoint = "bcc.bd.baidubce.com"
 	DefaultBDRegionEipEndPoint = "eip.bd.baidubce.com"
@@ -49,6 +51,7 @@ const (
 	DefaultBDRegionScsEndPoint = "redis.bd.baidubce.com"
 	DefaultBDRegionRdsEndPoint = "rds.bd.baidubce.com"
 	DefaultBDRegionDtsEndPoint = "rds.bd.baidubce.com"
+	DefaultBDRegionBesEndPoint = "bes.bd.baidubce.com"
 
 	DefaultGZRegionBccEndPoint = "bcc.gz.baidubce.com"
 	DefaultGZRegionEipEndPoint = "eip.gz.baidubce.com"
@@ -58,6 +61,7 @@ const (
 	DefaultGZRegionCceEndPoint = "cce.gz.baidubce.com"
 	DefaultGZRegionScsEndPoint = "redis.gz.baidubce.com"
 	DefaultGZRegionRdsEndPoint = "rds.gz.baidubce.com"
+	DefaultGZRegionBesEndPoint = "bes.gz.baidubce.com"
 
 	DefaultSURegionBccEndPoint = "bcc.su.baidubce.com"
 	DefaultSURegionEipEndPoint = "eip.su.baidubce.com"
@@ -67,6 +71,7 @@ const (
 	DefaultSURegionCceEndPoint = "cce.su.baidubce.com"
 	DefaultSURegionScsEndPoint = "redis.su.baidubce.com"
 	DefaultSURegionRdsEndPoint = "rds.su.baidubce.com"
+	DefaultSURegionBesEndPoint = "bes.su.baidubce.com"
 
 	DefaultFWHRegionBccEndPoint = "bcc.fwh.baidubce.com"
 	DefaultFWHRegionEipEndPoint = "eip.fwh.baidubce.com"
@@ -76,6 +81,7 @@ const (
 	DefaultFWHRegionCceEndPoint = "cce.fwh.baidubce.com"
 	DefaultFWHRegionScsEndPoint = "redis.fwh.baidubce.com"
 	DefaultFWHRegionRdsEndPoint = "rds.fwh.baidubce.com"
+	DefaultFWHRegionBesEndPoint = "bes.fwh.baidubce.com"
 
 	DefaultCERTEndPoint = "certificate.baidubce.com"
 	DefaultIAMEndPoint  = "iam.bj.baidubce.com"
@@ -105,6 +111,7 @@ var (
 		SCSCode:    DefaultBJRegionScsEndPoint,
 		RDSCode:    DefaultBJRegionRdsEndPoint,
 		DTSCode:    DefaultBJRegionDtsEndPoint,
+		BESCode:    DefaultBJRegionBesEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
@@ -123,6 +130,7 @@ var (
 		SCSCode:    DefaultBDRegionScsEndPoint,
 		RDSCode:    DefaultBDRegionRdsEndPoint,
 		DTSCode:    DefaultBDRegionDtsEndPoint,
+		BESCode:    DefaultBDRegionBesEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
@@ -140,6 +148,7 @@ var (
 		CCEv2Code:  DefaultGZRegionCceEndPoint,
 		SCSCode:    DefaultGZRegionScsEndPoint,
 		RDSCode:    DefaultGZRegionRdsEndPoint,
+		BESCode:    DefaultGZRegionBesEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
@@ -157,6 +166,7 @@ var (
 		CCEv2Code:  DefaultSURegionCceEndPoint,
 		SCSCode:    DefaultSURegionScsEndPoint,
 		RDSCode:    DefaultSURegionRdsEndPoint,
+		BESCode:    DefaultSURegionBesEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
 
@@ -174,6 +184,7 @@ var (
 		CCEv2Code:  DefaultFWHRegionCceEndPoint,
 		SCSCode:    DefaultFWHRegionScsEndPoint,
 		RDSCode:    DefaultFWHRegionRdsEndPoint,
+		BESCode:    DefaultFWHRegionBesEndPoint,
 		IAMCode:    DefaultIAMEndPoint,
 	}
 )

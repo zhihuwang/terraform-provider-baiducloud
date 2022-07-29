@@ -259,6 +259,7 @@ func Provider() terraform.ResourceProvider {
 			"baiducloud_iam_user_policy_attachment":   resourceBaiduCloudIamUserPolicyAttachment(),
 			"baiducloud_iam_group_policy_attachment":  resourceBaiduCloudIamGroupPolicyAttachment(),
 			"baiducloud_bbc_instance":                 resourceBaiduCloudBbcInstance(),
+			"baiducloud_es_cluster":                   resourceBaiduCloudESCluster(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -306,6 +307,7 @@ func init() {
 		"dts_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom DTS endpoints.",
 
 		"bbc_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom BBC endpoints.",
+		"bes_endpoint": "Use this to override the default endpoint URL constructed from the `region`. It's typically used to connect to custom BES endpoints.",
 	}
 }
 
@@ -386,6 +388,12 @@ func endpointsSchema() *schema.Schema {
 					Optional:    true,
 					Default:     "",
 					Description: descriptions["bbc_endpoint"],
+				},
+				"bes": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["bes_endpoint"],
 				},
 			},
 		},
@@ -502,6 +510,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.ConfigEndpoints[connectivity.RDSCode] = strings.TrimSpace(endpoints["rds"].(string))
 		config.ConfigEndpoints[connectivity.DTSCode] = strings.TrimSpace(endpoints["dts"].(string))
 		config.ConfigEndpoints[connectivity.BBCCode] = strings.TrimSpace(endpoints["bbc"].(string))
+		config.ConfigEndpoints[connectivity.BESCode] = strings.TrimSpace(endpoints["bes"].(string))
+
 	}
 
 	client, err := config.Client()

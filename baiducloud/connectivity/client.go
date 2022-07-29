@@ -9,6 +9,7 @@ import (
 	"github.com/baidubce/bce-sdk-go/services/appblb"
 	"github.com/baidubce/bce-sdk-go/services/bbc"
 	"github.com/baidubce/bce-sdk-go/services/bcc"
+	"github.com/baidubce/bce-sdk-go/services/bes"
 	"github.com/baidubce/bce-sdk-go/services/blb"
 	"github.com/baidubce/bce-sdk-go/services/bos"
 	"github.com/baidubce/bce-sdk-go/services/cce"
@@ -34,6 +35,7 @@ type BaiduClient struct {
 	Credentials *auth.BceCredentials
 
 	bbcConn    *bbc.Client
+	besConn    *bes.Client
 	bccConn    *bcc.Client
 	vpcConn    *vpc.Client
 	eipConn    *eip.Client
@@ -139,6 +141,25 @@ func (client *BaiduClient) WithBbcClient(do func(*bbc.Client) (interface{}, erro
 	}
 
 	return do(client.bbcConn)
+}
+
+func (client *BaiduClient) WithBesClient(do func(*bes.Client) (interface{}, error)) (interface{}, error) {
+	goSdkMutex.Lock()
+	defer goSdkMutex.Unlock()
+
+	// Initialize the BES client if necessary
+	if client.besConn == nil {
+		client.WithCommonClient(BESCode)
+		besClient, err := bes.NewClient(client.Credentials.AccessKeyId, client.Credentials.SecretAccessKey, client.Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		client.WithProxy(besClient.Config)
+		besClient.Config.Credentials = client.Credentials
+		client.besConn = besClient
+	}
+
+	return do(client.besConn)
 }
 
 func (client *BaiduClient) WithBccClient(do func(*bcc.Client) (interface{}, error)) (interface{}, error) {
