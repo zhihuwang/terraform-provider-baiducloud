@@ -65,6 +65,7 @@ func resourceBESClusterModule() *schema.Resource {
 			"disk_size": {
 				Type:        schema.TypeInt,
 				Description: "disk size",
+				Optional:    true,
 				Default:     0,
 			},
 		},
