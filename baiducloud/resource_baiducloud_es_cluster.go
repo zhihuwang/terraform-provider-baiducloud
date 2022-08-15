@@ -57,6 +57,7 @@ import (
 func resourceBaiduCloudESCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceBaiduCloudESClusterCreate,
+		Update: resourceBaiduCloudESClusterUpdate,
 		Read:   resourceBaiduCloudESClusterRead,
 		Delete: resourceBaiduCloudESClusterDelete,
 
@@ -183,6 +184,10 @@ func resourceBaiduCloudESClusterCreate(d *schema.ResourceData, meta interface{})
 		log.Printf("Create Cluster Error:" + err.Error())
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_es_cluster", action, BCESDKGoERROR)
 	}
+
+	return resourceBaiduCloudESClusterRead(d, meta)
+}
+func resourceBaiduCloudESClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	return resourceBaiduCloudESClusterRead(d, meta)
 }
