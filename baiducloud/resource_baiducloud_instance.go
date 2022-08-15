@@ -31,6 +31,9 @@ $ terraform import baiducloud_instance.my-server id
 package baiducloud
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/baidubce/bce-sdk-go/bce"
 	"github.com/baidubce/bce-sdk-go/model"
 	"github.com/baidubce/bce-sdk-go/services/bcc"
@@ -39,9 +42,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
-	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/rateLimit"
-	"strconv"
-	"time"
+	ratelimit "github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/rateLimit"
 )
 
 func resourceBaiduCloudInstance() *schema.Resource {
@@ -356,7 +357,7 @@ func resourceBaiduCloudInstance() *schema.Resource {
 				Description: "User Data",
 				Optional:    true,
 			},
-			"tags": tagsSchema(),
+			"tags": normalTagsSchema(),
 		},
 	}
 }
