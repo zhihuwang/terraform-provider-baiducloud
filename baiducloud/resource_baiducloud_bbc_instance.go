@@ -82,6 +82,18 @@ func resourceBaiduCloudBbcInstance() *schema.Resource {
 				Description: " Physical machine package ID",
 				Required:    true,
 			},
+			"enable_ht": {
+				Type:        schema.TypeBool,
+				Description: "enable hyper thread",
+				Optional:    true,
+				Default:     true,
+			},
+			"enable_numa": {
+				Type:        schema.TypeBool,
+				Description: "enable numa",
+				Optional:    true,
+				Default:     true,
+			},
 			"raid_id": {
 				Type:        schema.TypeString,
 				Description: "raid configration id",
@@ -586,6 +598,12 @@ func buildBaiduCloudBbcInstanceArgs(d *schema.ResourceData, meta interface{}) (*
 
 	if subnetId, ok := d.GetOk("subnet_id"); ok {
 		request.SubnetId = subnetId.(string)
+	}
+	if enableNuma, ok := d.GetOk("enable_numa"); ok {
+		request.EnableNuma = enableNuma.(bool)
+	}
+	if enableHt, ok := d.GetOk("enable_ht"); ok {
+		request.EnableHt = enableHt.(bool)
 	}
 
 	if v, ok := d.GetOk("tags"); ok {
