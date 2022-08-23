@@ -491,7 +491,7 @@ func buildBaiduCloudRdsInstanceArgs(d *schema.ResourceData, meta interface{}) (*
 	if category, ok := d.GetOk("category"); ok {
 		request.Category = category.(string)
 	}
-
+	request.DiskIoType = "normal_io"
 	if cpuCount, ok := d.GetOk("cpu_count"); ok {
 		request.CpuCount = cpuCount.(int)
 	}
