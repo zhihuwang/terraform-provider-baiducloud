@@ -122,7 +122,7 @@ func (client *BaiduClient) WithCommonClient(serviceCode ServiceCode) *BaiduClien
 	return client
 }
 func (client *BaiduClient) WithProxy(config *bce.BceClientConfiguration) {
-	proxyUrl := os.Getenv("HTTP_PROXY")
+	proxyUrl := os.Getenv("BAIDU_PROXY")
 	if len(proxyUrl) > 0 {
 		config.ProxyUrl = proxyUrl
 	}
