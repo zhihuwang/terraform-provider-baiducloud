@@ -86,13 +86,11 @@ func resourceBaiduCloudBbcInstance() *schema.Resource {
 				Type:        schema.TypeBool,
 				Description: "enable hyper thread",
 				Optional:    true,
-				Default:     true,
 			},
 			"enable_numa": {
 				Type:        schema.TypeBool,
 				Description: "enable numa",
 				Optional:    true,
-				Default:     true,
 			},
 			"raid_id": {
 				Type:        schema.TypeString,
