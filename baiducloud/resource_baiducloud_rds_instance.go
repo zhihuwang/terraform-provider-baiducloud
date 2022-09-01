@@ -609,13 +609,13 @@ func updateRdsParameters(d *schema.ResourceData, meta interface{}, instanceID st
 			return WrapErrorf(er, DefaultErrorMsg, "baiducloud_rds_instance", action, BCESDKGoERROR)
 		}
 
-		_, er = client.WithRdsClient(func(rdsClient *rds.Client) (i interface{}, e error) {
-			return nil, rdsClient.RebootInstance(instanceID)
-		})
+		//_, er = client.WithRdsClient(func(rdsClient *rds.Client) (i interface{}, e error) {
+		//	return nil, rdsClient.RebootInstance(instanceID)
+		//})
 
-		if er != nil {
-			return WrapErrorf(er, DefaultErrorMsg, "baiducloud_rds_instance", action, BCESDKGoERROR)
-		}
+		//if er != nil {
+		//	return WrapErrorf(er, DefaultErrorMsg, "baiducloud_rds_instance", action, BCESDKGoERROR)
+		//}
 		time.Sleep(time.Second * 1)
 		stateConf := buildStateConf(
 			[]string{RDSStatusRebooting, RDSStatusModifying},
