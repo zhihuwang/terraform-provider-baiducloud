@@ -1610,12 +1610,13 @@ func getAvailableInstanceGroup(instanceGroups []*ccev2.InstanceGroup, role ccev2
 	//区分是master机器还是node机器
 	for _, instanceGroup := range instanceGroups {
 		if instanceGroup.Spec.ClusterRole == role && instanceGroup.Spec.Replicas+left_nodes <= 200 {
+			//log.Printf("group->%s->%s", instanceGroup.Spec.CCEInstanceGroupID, instanceGroup.CreatedAt.Format(time.RFC3339))
 			targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
 		}
 	}
 	// sort with createdAt asc
 	sort.Slice(targetInstanceGroups[:], func(i, j int) bool {
-		return targetInstanceGroups[i].CreatedAt.Before(targetInstanceGroups[j].CreatedAt)
+		return targetInstanceGroups[i].CreatedAt.After(targetInstanceGroups[j].CreatedAt)
 	})
 	return targetInstanceGroups
 }
