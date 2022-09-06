@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	testAccBbcInstanceResourceType = "baiducloud_bbc_instance"
-	testAccBbcInstanceResourceName = testAccBbcInstanceResourceType + "." + BaiduCloudTestResourceName
+	testAccBbcInstanceResourceType       = "baiducloud_bbc_instance"
+	BaiduCloudTestResourceAttrNamePrefix = ""
+	testAccBbcInstanceResourceName       = testAccBbcInstanceResourceType + "." + BaiduCloudTestResourceName
 )
 
 func init() {

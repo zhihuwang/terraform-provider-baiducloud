@@ -464,7 +464,7 @@ func resourceBaiduCloudBbcInstanceDelete(d *schema.ResourceData, meta interface{
 					return nil, bbcClient.BindTags(instanceId, bindTagsRequest)
 				})
 				if err != nil {
-					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bbc_instance", action, action, BCESDKGoERROR)
+					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bbc_instance", action, BCESDKGoERROR)
 				} else {
 					return nil
 				}
