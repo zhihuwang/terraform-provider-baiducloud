@@ -685,7 +685,7 @@ func resourceBaiduCloudInstanceDelete(d *schema.ResourceData, meta interface{}) 
 					return nil, bccClient.BindInstanceToTags(instanceId, bindTagsRequest)
 				})
 				if err != nil {
-					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_instance", action, action, BCESDKGoERROR)
+					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_instance", action, BCESDKGoERROR)
 				} else {
 					return nil
 				}
