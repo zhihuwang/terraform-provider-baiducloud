@@ -57,16 +57,19 @@ func resourceBESClusterModule() *schema.Resource {
 				Required:    true,
 			},
 			"disk_type": {
-				Type:        schema.TypeInt,
-				Description: "instance num",
+				Type:        schema.TypeString,
+				Description: "disk type: ssd,premium_ssd",
 				Optional:    true,
-				Default:     "ssd",
 			},
 			"disk_size": {
 				Type:        schema.TypeInt,
 				Description: "disk size",
 				Optional:    true,
-				Default:     0,
+			},
+			"type": {
+				Type:        schema.TypeString,
+				Description: "instance type: es_node,kibana,es_coordinate_node,es_cold_tier_node,es_dedicated_master",
+				Required:    true,
 			},
 		},
 	}
@@ -85,14 +88,29 @@ func buildBESCreateClusterRequest(d *schema.ResourceData) (*bes.ESClusterRequest
 	if v, ok := d.GetOk("available_zone"); ok && v.(string) != "" {
 		clusterSpec.AvailableZone = v.(string)
 	}
+	if v, ok := d.GetOk("password"); ok && v.(string) != "" {
+		clusterSpec.Password = v.(string)
+	}
 	if v, ok := d.GetOk("payment_type"); ok && v.(string) != "" {
 		if v.(string) == "Postpaid" {
 			clusterSpec.Billing.PaymentType = "postpay"
 		} else {
 			clusterSpec.Billing.PaymentType = "prepay"
-		}
-		if v, ok := d.GetOk("payment_time"); ok && v.(int) > -1 {
-			clusterSpec.Billing.Time = v.(int)
+			// 付费时间
+			if v, ok := d.GetOk("payment_time"); ok && v.(int) > -1 {
+				time := v.(int)
+				clusterSpec.Billing.Time = &time
+			}
+			//自动续费
+			if v, ok := d.GetOk("auto_renew"); ok && v.(string) != "" {
+				flag := true
+				clusterSpec.Billing.EnableAutoRenew = &flag
+				clusterSpec.Billing.AutoRenewInfo = &bes.ESAutoRenewInfo{
+					RenewTimeUnit: "month",
+					RenewTime:     *clusterSpec.Billing.Time,
+				}
+			}
+
 		}
 	}
 	clusterSpec.IsOldPackage = false
@@ -102,6 +120,9 @@ func buildBESCreateClusterRequest(d *schema.ResourceData) (*bes.ESClusterRequest
 	}
 	if v, ok := d.GetOk("subnet_id"); ok && v.(string) != "" {
 		clusterSpec.SubnetUUID = v.(string)
+	}
+	if v, ok := d.GetOk("vpc_id"); ok && v.(string) != "" {
+		clusterSpec.VpcID = v.(string)
 	}
 	if v, ok := d.GetOk("version"); ok && v.(string) != "" {
 		clusterSpec.Version = v.(string)
@@ -119,10 +140,18 @@ func buildBESCreateClusterRequest(d *schema.ResourceData) (*bes.ESClusterRequest
 				em.SlotType = moduleMap["slot_type"].(string)
 			}
 			if moduleMap["disk_type"] != nil {
-				em.DiskSlotInfo.Type = moduleMap["disk_type"].(string)
+				em.DiskSlotInfo = &bes.ESDiskSlotInfo{
+					Type: moduleMap["disk_type"].(string),
+				}
+				if moduleMap["disk_size"] != nil {
+					em.DiskSlotInfo.Size = moduleMap["disk_size"].(int)
+				} else {
+					em.DiskSlotInfo.Size = 20
+				}
 			}
-			if moduleMap["disk_size"] != nil {
-				em.DiskSlotInfo.Size = moduleMap["disk_size"].(int)
+
+			if moduleMap["type"] != nil {
+				em.Type = moduleMap["type"].(string)
 			}
 			modules = append(modules, em)
 		}

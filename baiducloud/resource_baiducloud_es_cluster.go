@@ -5,38 +5,7 @@ Example Usage
 
 ```hcl
 resource "baiducloud_es_cluster" "default_managed" {
-  cluster_spec  {
-    cluster_name = var.cluster_name
-    cluster_type = "normal"
-    k8s_version = "1.16.8"
-    runtime_type = "docker"
-    vpc_id = baiducloud_vpc.default.id
-    plugins = ["core-dns", "kube-proxy"]
-    master_config {
-      master_type = "managed"
-      cluster_ha = 2
-      exposed_public = false
-      cluster_blb_vpc_subnet_id = baiducloud_subnet.defaultA.id
-      managed_cluster_master_option {
-        master_vpc_subnet_zone = "zoneA"
-      }
-    }
-    container_network_config  {
-      mode = "kubenet"
-      lb_service_vpc_subnet_id = baiducloud_subnet.defaultA.id
-      node_port_range_min = 30000
-      node_port_range_max = 32767
-      max_pods_per_node = 64
-      cluster_pod_cidr = var.cluster_pod_cidr
-      cluster_ip_service_cidr = var.cluster_ip_service_cidr
-      ip_version = "ipv4"
-      kube_proxy_mode = "iptables"
-    }
-    cluster_delete_option {
-      delete_resource = true
-      delete_cds_snapshot = true
-    }
-  }
+
 }
 ```
 */
@@ -44,6 +13,7 @@ package baiducloud
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -86,15 +56,40 @@ func resourceBaiduCloudESCluster() *schema.Resource {
 				Description: "status of the cluster",
 				Computed:    true,
 			},
+			"kibana_url": {
+				Type:        schema.TypeString,
+				Description: "kibana url",
+				Computed:    true,
+			},
+			"kibana_eip": {
+				Type:        schema.TypeString,
+				Description: "kibana eip",
+				Computed:    true,
+			},
+			"es_url": {
+				Type:        schema.TypeString,
+				Description: "es url",
+				Computed:    true,
+			},
+			"es_eip": {
+				Type:        schema.TypeString,
+				Description: "es eip",
+				Computed:    true,
+			},
 			"name": {
 				Type:        schema.TypeString,
 				Description: "name",
 				Required:    true,
 			},
+			"username": {
+				Type:        schema.TypeString,
+				Description: "username",
+				Optional:    true,
+			},
 			"password": {
 				Type:        schema.TypeString,
 				Description: "password",
-				Required:    true,
+				Optional:    true,
 			},
 			"security_group_id": {
 				Type:        schema.TypeString,
@@ -124,15 +119,20 @@ func resourceBaiduCloudESCluster() *schema.Resource {
 			},
 			"payment_type": {
 				Type:        schema.TypeString,
-				Description: "paymentType",
+				Description: "Payment Type",
 				Optional:    true,
 				Default:     "postpay",
 			},
 			"payment_time": {
 				Type:        schema.TypeInt,
-				Description: "payment_time",
+				Description: "Payment Time",
 				Optional:    true,
-				Default:     0,
+				Default:     12,
+			},
+			"auto_renew": {
+				Type:        schema.TypeBool,
+				Description: "auto renew",
+				Optional:    true,
 			},
 		},
 	}
@@ -162,6 +162,9 @@ func resourceBaiduCloudESClusterCreate(d *schema.ResourceData, meta interface{})
 		if !ok {
 			err = errors.New("response format illegal")
 			return resource.NonRetryableError(err)
+		}
+		if !response.Success {
+			return resource.NonRetryableError(WrapErrorf(fmt.Errorf("[Code: %s; Message: %s; RequestId: %s]", response.Code, response.Error.Message, response.Error.RequestId), DefaultErrorMsg, "baiducloud_es_cluster", action, BCESDKGoERROR))
 		}
 		d.SetId(response.Result.ClusterId)
 		return nil
@@ -219,12 +222,12 @@ func resourceBaiduCloudESClusterRead(d *schema.ResourceData, meta interface{}) e
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_es_cluster", action, BCESDKGoERROR)
 	}
 
-	err = d.Set("cluster_status", response.Result.ActualStatus)
-	if err != nil {
-		log.Printf("Set cluster_status Error:" + err.Error())
-		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_es_cluster", action, BCESDKGoERROR)
-	}
-
+	d.Set("cluster_status", response.Result.ActualStatus)
+	d.Set("kibana_url", response.Result.KibanaURL)
+	d.Set("kibana_eip", response.Result.KibanaEip)
+	d.Set("es_url", response.Result.EsURL)
+	d.Set("es_eip", response.Result.EsEip)
+	d.Set("username", response.Result.AdminUsername)
 	return nil
 }
 
