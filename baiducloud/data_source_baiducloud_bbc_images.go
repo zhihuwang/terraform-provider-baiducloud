@@ -45,6 +45,12 @@ func dataSourceBaiduCloudBbcImages() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateNameRegex,
 			},
+			"flavor_id": {
+				Type:        schema.TypeString,
+				Description: "flavor_id of the search image name",
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"os_name": {
 				Type:        schema.TypeString,
 				Description: "Search image OS Name",
@@ -141,8 +147,14 @@ func dataSourceBaiduCloudBbcImagesRead(d *schema.ResourceData, meta interface{})
 	if v, ok := d.GetOk("image_type"); ok {
 		listArgs.ImageType = v.(string)
 	}
+	var imageResult []bbc.ImageModel = make([]bbc.ImageModel, 0)
+	var err error
+	if v, ok := d.GetOk("flavor_id"); ok {
+		imageResult, err = bbcService.ListAllFlavorImages(v.(string), listArgs)
+	} else {
+		imageResult, err = bbcService.ListAllBbcImages(listArgs)
+	}
 
-	imageResult, err := bbcService.ListAllBbcImages(listArgs)
 	if err != nil {
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bbc_images", action, BCESDKGoERROR)
 	}
@@ -157,8 +169,7 @@ func dataSourceBaiduCloudBbcImagesRead(d *schema.ResourceData, meta interface{})
 					"nothing to do.", image.Id)
 				continue
 			}
-
-			if r.MatchString(image.Name) {
+			if r.MatchString(strings.Trim(image.Name, " ")) {
 				imageListFilterName = append(imageListFilterName, image)
 			}
 		}
