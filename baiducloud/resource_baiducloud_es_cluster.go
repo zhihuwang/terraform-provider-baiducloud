@@ -175,7 +175,7 @@ func resourceBaiduCloudESClusterCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	stateConf := buildStateConf(
-		[]string{string("Creating"), string("Starting")},
+		[]string{string("Creating"), string("Initializing"), string("Starting")},
 		[]string{string("Avaiable"), string("Running")},
 		d.Timeout(schema.TimeoutCreate),
 		besService.ClusterStateRefreshes(d.Id(), []string{

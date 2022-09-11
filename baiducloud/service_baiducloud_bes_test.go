@@ -3,18 +3,52 @@ package baiducloud
 import (
 	"encoding/json"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/baidubce/bce-sdk-go/services/bes"
 	"github.com/terraform-providers/terraform-provider-baiducloud/baiducloud/connectivity"
 )
 
-func TestBes(t *testing.T) {
-	config := connectivity.Config{
-		AccessKey: "xxxx",
-		SecretKey: "xxxx",
-		Region:    "bj",
+func TestDelBes(t *testing.T) {
+	config := getConfig()
+	client, err := config.Client()
+	log.Printf("err=%v", err)
+	raw, err := client.WithBesClient(func(client *bes.Client) (interface{}, error) {
+		return client.DeleteCluster(&bes.GetESClusterRequest{
+			ClusterId: "xxxxx",
+		})
+	})
+	log.Printf("err=%v", err)
+	result := raw.(*bes.DeleteESClusterResponse)
+	data, _ := json.MarshalIndent(result, " ", " ")
+	log.Printf("create_res=%v", string(data))
+
+}
+func TestGetBes(t *testing.T) {
+	config := getConfig()
+	client, err := config.Client()
+	log.Printf("err=%v", err)
+	raw, err := client.WithBesClient(func(client *bes.Client) (interface{}, error) {
+		return client.GetCluster(&bes.GetESClusterRequest{
+			ClusterId: "xxxx",
+		})
+	})
+	log.Printf("err=%v", err)
+	result := raw.(*bes.DetailESClusterResponse)
+	data, _ := json.MarshalIndent(result, " ", " ")
+	log.Printf("create_res=%v", string(data))
+
+}
+func getConfig() connectivity.Config {
+	return connectivity.Config{
+		AccessKey: os.Getenv("BAIDU_ACCESSS_KEY"),
+		SecretKey: os.Getenv("BAIDU_SECRET_KEY"),
+		Region:    connectivity.DefaultRegion,
 	}
+}
+func TestBes(t *testing.T) {
+	config := getConfig()
 	client, err := config.Client()
 	log.Printf("err=%v", err)
 	modules := make([]*bes.ESClusterModule, 0)
