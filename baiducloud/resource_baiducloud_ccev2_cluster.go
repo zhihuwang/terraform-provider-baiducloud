@@ -1,43 +1,45 @@
 /*
 Use this resource to create a CCEv2 cluster.
 
-Example Usage
+# Example Usage
 
 ```hcl
-resource "baiducloud_ccev2_cluster" "default_managed" {
-  cluster_spec  {
-    cluster_name = var.cluster_name
-    cluster_type = "normal"
-    k8s_version = "1.16.8"
-    runtime_type = "docker"
-    vpc_id = baiducloud_vpc.default.id
-    plugins = ["core-dns", "kube-proxy"]
-    master_config {
-      master_type = "managed"
-      cluster_ha = 2
-      exposed_public = false
-      cluster_blb_vpc_subnet_id = baiducloud_subnet.defaultA.id
-      managed_cluster_master_option {
-        master_vpc_subnet_zone = "zoneA"
-      }
-    }
-    container_network_config  {
-      mode = "kubenet"
-      lb_service_vpc_subnet_id = baiducloud_subnet.defaultA.id
-      node_port_range_min = 30000
-      node_port_range_max = 32767
-      max_pods_per_node = 64
-      cluster_pod_cidr = var.cluster_pod_cidr
-      cluster_ip_service_cidr = var.cluster_ip_service_cidr
-      ip_version = "ipv4"
-      kube_proxy_mode = "iptables"
-    }
-    cluster_delete_option {
-      delete_resource = true
-      delete_cds_snapshot = true
-    }
-  }
-}
+
+	resource "baiducloud_ccev2_cluster" "default_managed" {
+	  cluster_spec  {
+	    cluster_name = var.cluster_name
+	    cluster_type = "normal"
+	    k8s_version = "1.16.8"
+	    runtime_type = "docker"
+	    vpc_id = baiducloud_vpc.default.id
+	    plugins = ["core-dns", "kube-proxy"]
+	    master_config {
+	      master_type = "managed"
+	      cluster_ha = 2
+	      exposed_public = false
+	      cluster_blb_vpc_subnet_id = baiducloud_subnet.defaultA.id
+	      managed_cluster_master_option {
+	        master_vpc_subnet_zone = "zoneA"
+	      }
+	    }
+	    container_network_config  {
+	      mode = "kubenet"
+	      lb_service_vpc_subnet_id = baiducloud_subnet.defaultA.id
+	      node_port_range_min = 30000
+	      node_port_range_max = 32767
+	      max_pods_per_node = 64
+	      cluster_pod_cidr = var.cluster_pod_cidr
+	      cluster_ip_service_cidr = var.cluster_ip_service_cidr
+	      ip_version = "ipv4"
+	      kube_proxy_mode = "iptables"
+	    }
+	    cluster_delete_option {
+	      delete_resource = true
+	      delete_cds_snapshot = true
+	    }
+	  }
+	}
+
 ```
 */
 package baiducloud

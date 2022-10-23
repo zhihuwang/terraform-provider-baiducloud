@@ -3,49 +3,51 @@ Use this resource to create a CCEv2 InstanceGroup.
 
 ~> **NOTE:** The create/update/delete operation of ccev2 does NOT take effect immediately，maybe takes for several minutes.
 
-Example Usage
+# Example Usage
 
 ```hcl
-resource "baiducloud_ccev2_instance_group" "ccev2_instance_group_1" {
-  spec {
-    cluster_id = baiducloud_ccev2_cluster.default_custom.id
-    replicas = var.instance_group_replica_1
-    instance_group_name = "ig_1"
-    instance_template {
-      cce_instance_id = ""
-      instance_name = "tf_ins_ig_1"
-      cluster_role = "node"
-      existed = false
-      machine_type = "BCC"
-      instance_type = "N3"
-      vpc_config {
-        vpc_id = baiducloud_vpc.default.id
-        vpc_subnet_id = baiducloud_subnet.defaultA.id
-        security_group_id = baiducloud_security_group.default.id
-        available_zone = "zoneA"
-      }
-      deploy_custom_config {
-        pre_user_script  = "ls"
-        post_user_script = "date"
-      }
-      instance_resource {
-        cpu = 4
-        mem = 8
-        root_disk_size = 40
-        local_disk_size = 0
-      }
-      image_id = data.baiducloud_images.default.images.0.id
-      instance_os {
-        image_type = "System"
-      }
-      need_eip = false
-      admin_password = "test123!YT"
-      ssh_key_id = ""
-      instance_charging_type = "Postpaid"
-      runtime_type = "docker"
-    }
-  }
-}
+
+	resource "baiducloud_ccev2_instance_group" "ccev2_instance_group_1" {
+	  spec {
+	    cluster_id = baiducloud_ccev2_cluster.default_custom.id
+	    replicas = var.instance_group_replica_1
+	    instance_group_name = "ig_1"
+	    instance_template {
+	      cce_instance_id = ""
+	      instance_name = "tf_ins_ig_1"
+	      cluster_role = "node"
+	      existed = false
+	      machine_type = "BCC"
+	      instance_type = "N3"
+	      vpc_config {
+	        vpc_id = baiducloud_vpc.default.id
+	        vpc_subnet_id = baiducloud_subnet.defaultA.id
+	        security_group_id = baiducloud_security_group.default.id
+	        available_zone = "zoneA"
+	      }
+	      deploy_custom_config {
+	        pre_user_script  = "ls"
+	        post_user_script = "date"
+	      }
+	      instance_resource {
+	        cpu = 4
+	        mem = 8
+	        root_disk_size = 40
+	        local_disk_size = 0
+	      }
+	      image_id = data.baiducloud_images.default.images.0.id
+	      instance_os {
+	        image_type = "System"
+	      }
+	      need_eip = false
+	      admin_password = "test123!YT"
+	      ssh_key_id = ""
+	      instance_charging_type = "Postpaid"
+	      runtime_type = "docker"
+	    }
+	  }
+	}
+
 ```
 */
 package baiducloud
@@ -115,6 +117,12 @@ func resourceBaiduCloudCCEv2InstanceGroup() *schema.Resource {
 						},
 					},
 				},
+			},
+			"payment_type": {
+				Type:        schema.TypeString,
+				Description: "Payment Type for worker nodes",
+				Default:     "Postpaid",
+				Optional:    true,
 			},
 			//Status of the instance group
 			"status": {
@@ -200,8 +208,39 @@ func resourceBaiduCloudCCEv2InstanceGroupCreate(d *schema.ResourceData, meta int
 		log.Printf("Create InstanceGroup Error:" + err.Error())
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group", action, BCESDKGoERROR)
 	}
-
+	if paymentType, ok := d.GetOk("payment_type"); ok {
+		if paymentType.(string) == "Prepaid" {
+			convertToPrePaid(args.ClusterID, d.Id(), client)
+		}
+	}
 	return resourceBaiduCloudCCEv2InstanceGroupRead(d, meta)
+}
+
+// Auto Convert to Prepaid
+func convertToPrePaid(clusterId string, instanceGroupID string, client *connectivity.BaiduClient) error {
+	bccService := BccService{client}
+	ccev2Service := Ccev2Service{client}
+	action := "Convert CCEv2 Cluster Instance Group Intantces to Prepaid "
+	instancesResponse, err := ccev2Service.GetInstanceGroupInstances(&ccev2.ListInstanceByInstanceGroupIDArgs{
+		ClusterID:       clusterId,
+		InstanceGroupID: instanceGroupID,
+	})
+	if err != nil {
+		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group", action, BCESDKGoERROR)
+	}
+	if err == nil {
+		finished := 0
+		var m int
+		for m = 0; m < len(instancesResponse.Page.List); m++ {
+			err = bccService.EnablePrepaidAndAutoRenew(instancesResponse.Page.List[m].Status.Machine.InstanceID)
+			if err == nil {
+				finished++
+			} else {
+				log.Printf("EnablePrepaidAndAutoRenew for bcc instance[%s] failed:%s", instancesResponse.Page.List[m].Status.Machine.InstanceID, err.Error())
+			}
+		}
+	}
+	return err
 }
 
 func resourceBaiduCloudCCEv2InstanceGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -323,6 +362,11 @@ func resourceBaiduCloudCCEv2InstanceGroupUpdate(d *schema.ResourceData, meta int
 	if err != nil {
 		log.Printf("Update InstanceGroup Error:" + err.Error())
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_group", action, BCESDKGoERROR)
+	}
+	if paymentType, ok := d.GetOk("payment_type"); ok {
+		if paymentType.(string) == "Prepaid" {
+			convertToPrePaid(args.ClusterID, args.InstanceGroupID, client)
+		}
 	}
 	return resourceBaiduCloudCCEv2InstanceGroupRead(d, meta)
 }
