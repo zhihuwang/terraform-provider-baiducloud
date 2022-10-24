@@ -132,14 +132,14 @@ func buildBESCreateClusterRequest(d *schema.ResourceData) (*bes.ESClusterRequest
 		modules := make([]*bes.ESClusterModule, 0)
 		for _, m := range v.([]interface{}) {
 			moduleMap := m.(map[string]interface{})
-			em := &bes.ESClusterModule{}
+			em := bes.ESClusterModule{}
 			if moduleMap["instance_num"] != nil {
 				em.InstanceNum = moduleMap["instance_num"].(int)
 			}
 			if moduleMap["slot_type"] != nil {
 				em.SlotType = moduleMap["slot_type"].(string)
 			}
-			if moduleMap["disk_type"] != nil {
+			if moduleMap["disk_type"] != nil && moduleMap["disk_type"].(string) != "" {
 				em.DiskSlotInfo = &bes.ESDiskSlotInfo{
 					Type: moduleMap["disk_type"].(string),
 				}
@@ -153,7 +153,7 @@ func buildBESCreateClusterRequest(d *schema.ResourceData) (*bes.ESClusterRequest
 			if moduleMap["type"] != nil {
 				em.Type = moduleMap["type"].(string)
 			}
-			modules = append(modules, em)
+			modules = append(modules, &em)
 		}
 		clusterSpec.Modules = modules
 	}

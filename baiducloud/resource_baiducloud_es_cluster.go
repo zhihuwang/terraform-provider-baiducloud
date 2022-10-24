@@ -179,8 +179,7 @@ func resourceBaiduCloudESClusterCreate(d *schema.ResourceData, meta interface{})
 		[]string{string("Avaiable"), string("Running")},
 		d.Timeout(schema.TimeoutCreate),
 		besService.ClusterStateRefreshes(d.Id(), []string{
-			"Running",
-			"Falied",
+			"Failed",
 		}),
 	)
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -255,22 +254,21 @@ func resourceBaiduCloudESClusterDelete(d *schema.ResourceData, meta interface{})
 
 	stateConf := buildStateConf(
 		[]string{string("Running"), string(estypes.ClusterPhaseRunning),
-			string(estypes.ClusterPhaseDeleting),
-			string(estypes.ClusterPhaseCreateFailed),
-			string(estypes.ClusterPhaseProvisioned),
-			string(estypes.ClusterPhaseProvisioning),
-			string(estypes.ClusterPhaseDeleteFailed),
+			"Deleting",
+			"Stopped",
+			"Audit_stopping",
+			"Audit_stopped",
 		},
-		[]string{string(estypes.ClusterPhaseDeleted)},
+		[]string{"Deleted"},
 		d.Timeout(schema.TimeoutDelete),
 		besService.ClusterStateRefreshes(clusterId, []string{
-			"failed",
+			"Failed",
 		}),
 	)
 	if _, err := stateConf.WaitForState(); err != nil {
 		log.Printf("Delete Cluster Error:" + err.Error())
 		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_es_cluster", action, BCESDKGoERROR)
 	}
-	time.Sleep(1 * time.Minute) //waiting for infrastructure delete before delete vpc & security group
+	time.Sleep(10 * time.Second) //waiting for infrastructure delete before delete vpc & security group
 	return nil
 }
