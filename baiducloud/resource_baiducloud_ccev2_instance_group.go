@@ -169,7 +169,7 @@ func resourceBaiduCloudCCEv2InstanceGroupCreate(d *schema.ResourceData, meta int
 		}
 
 		resp := raw.(*ccev2.CreateInstanceGroupResponse)
-
+		d.SetId(resp.InstanceGroupID)
 		//waiting all instance in instance group are ready
 		createTimeOutTime := d.Timeout(schema.TimeoutCreate)
 		loopsCount := createTimeOutTime.Microseconds() / ((10 * time.Second).Microseconds())
@@ -191,16 +191,16 @@ func resourceBaiduCloudCCEv2InstanceGroupCreate(d *schema.ResourceData, meta int
 				break
 			}
 			if i == loopsCount {
-				return resource.NonRetryableError(errors.New("create instance group time out"))
+				return resource.NonRetryableError(errors.New("waiting instance group ReadyReplicas time out"))
 			}
 		}
 		addDebug(action, raw)
-		response, ok := raw.(*ccev2.CreateInstanceGroupResponse)
+		_, ok := raw.(*ccev2.CreateInstanceGroupResponse)
 		if !ok {
 			err = errors.New("response format illegal")
 			return resource.NonRetryableError(err)
 		}
-		d.SetId(response.InstanceGroupID)
+
 		return nil
 	})
 

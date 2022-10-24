@@ -1987,7 +1987,7 @@ func convertDeployCustomConfigFromJsonToMap(config *ccev2types.DeployCustomConfi
 	}
 
 	//DockerConfig is not a pointer.
-	dockerConfig, err := convertDockerConfigFromJsonToMap(config.DockerConfig)
+	dockerConfig, err := convertDockerConfigFromJsonToMap(*config.DockerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -2916,7 +2916,7 @@ func buildDeployCustomConfig(deployCustomConfigRawMap map[string]interface{}) (*
 			log.Printf("Build Docker Config Fail:" + err.Error())
 			return nil, err
 		}
-		option.DockerConfig = *dockerConfigOption
+		option.DockerConfig = dockerConfigOption
 	}
 	if v, ok := deployCustomConfigRawMap["containerd_config"]; ok && len(v.([]interface{})) == 1 {
 		containerdConfigRaw := v.([]interface{})[0].(map[string]interface{})
@@ -2925,7 +2925,7 @@ func buildDeployCustomConfig(deployCustomConfigRawMap map[string]interface{}) (*
 			log.Printf("Build Containerd Config Fail:" + err.Error())
 			return nil, err
 		}
-		option.ContainerdConfig = *containerdConfigOption
+		option.ContainerdConfig = containerdConfigOption
 	}
 
 	if v, ok := deployCustomConfigRawMap["kubelet_root_dir"]; ok && v.(string) != "" {
