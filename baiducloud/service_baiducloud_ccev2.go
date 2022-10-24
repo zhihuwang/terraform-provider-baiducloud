@@ -1461,6 +1461,41 @@ func resourceCCEv2DeployCustomConfig() *schema.Resource {
 					},
 				},
 			},
+			"containerd_config": {
+				Type:        schema.TypeList,
+				Description: "Containerd Config Info",
+				Optional:    true,
+				Computed:    true,
+				MaxItems:    1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"data_root": {
+							Type:        schema.TypeString,
+							Description: "Customized Docker Data Directory",
+							Optional:    true,
+							Computed:    true,
+						},
+						"registry_mirrors": {
+							Type:        schema.TypeList,
+							Description: "Customized RegistryMirrors",
+							Optional:    true,
+							Computed:    true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+						"insecure_registries": {
+							Type:        schema.TypeList,
+							Description: "Customized InsecureRegistries",
+							Optional:    true,
+							Computed:    true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+			},
 			"kubelet_root_dir": {
 				Type:        schema.TypeString,
 				Description: "kubelet Data Directory",
@@ -2883,6 +2918,15 @@ func buildDeployCustomConfig(deployCustomConfigRawMap map[string]interface{}) (*
 		}
 		option.DockerConfig = *dockerConfigOption
 	}
+	if v, ok := deployCustomConfigRawMap["containerd_config"]; ok && len(v.([]interface{})) == 1 {
+		containerdConfigRaw := v.([]interface{})[0].(map[string]interface{})
+		containerdConfigOption, err := buildContainerdConfig(containerdConfigRaw)
+		if err != nil {
+			log.Printf("Build Containerd Config Fail:" + err.Error())
+			return nil, err
+		}
+		option.ContainerdConfig = *containerdConfigOption
+	}
 
 	if v, ok := deployCustomConfigRawMap["kubelet_root_dir"]; ok && v.(string) != "" {
 		option.KubeletRootDir = v.(string)
@@ -2913,6 +2957,32 @@ func buildDeployCustomConfig(deployCustomConfigRawMap map[string]interface{}) (*
 	}
 
 	return option, nil
+}
+
+func buildContainerdConfig(dockerConfigRawMap map[string]interface{}) (*ccev2types.ContainerdConfig, error) {
+	config := &ccev2types.ContainerdConfig{}
+
+	if v, ok := dockerConfigRawMap["data_root"]; ok && v.(string) != "" {
+		config.DataRoot = v.(string)
+	}
+
+	if v, ok := dockerConfigRawMap["registry_mirrors"]; ok && v != nil {
+		registryMirrors := make([]string, 0)
+		for _, mirrorsRaw := range v.([]interface{}) {
+			registryMirrors = append(registryMirrors, mirrorsRaw.(string))
+		}
+		config.RegistryMirrors = registryMirrors
+	}
+
+	if v, ok := dockerConfigRawMap["insecure_registries"]; ok && v != nil {
+		registries := make([]string, 0)
+		for _, registriesRaw := range v.([]interface{}) {
+			registries = append(registries, registriesRaw.(string))
+		}
+		config.InsecureRegistries = registries
+	}
+
+	return config, nil
 }
 
 func buildDockerConfig(dockerConfigRawMap map[string]interface{}) (*ccev2types.DockerConfig, error) {
