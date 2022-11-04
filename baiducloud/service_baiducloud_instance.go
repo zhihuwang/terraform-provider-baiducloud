@@ -366,6 +366,8 @@ func (s *BccService) EnablePrepaidAndAutoRenew(instanceId string) error {
 		return fmt.Errorf("unstable instance[%s] status [%s] for enable auto renew", model.InstanceId, model.Status)
 	}
 	if err == nil {
+		// to avoid prepaid resource can not be found error
+		time.Sleep(5 * time.Second)
 		err = s.EnableAutoRenew(model.InstanceId, "year", 1)
 		if err != nil {
 			log.Printf("enable auto renew for bcc instance[%s] failed:%s", model.InstanceId, err.Error())
