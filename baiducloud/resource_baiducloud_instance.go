@@ -35,7 +35,6 @@ import (
 	"time"
 
 	"github.com/baidubce/bce-sdk-go/bce"
-	"github.com/baidubce/bce-sdk-go/model"
 	"github.com/baidubce/bce-sdk-go/services/bcc"
 	"github.com/baidubce/bce-sdk-go/services/bcc/api"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
@@ -663,66 +662,80 @@ func resourceBaiduCloudInstanceDelete(d *schema.ResourceData, meta interface{}) 
 
 	instanceId := d.Id()
 	action := "Delete BCC Instance " + instanceId
-	// terminated prepaid instance
+	// flag to delete prepadiInstance
+	deletePrepaidIntance := false
+	// delete prepaid instance
 	if v, ok := d.GetOk("billing"); ok {
 		billings := v.([]interface{})
 		billing := billings[0].(map[string]interface{})
 		if p, ok := billing["payment_timing"]; ok {
 			if p.(string) == "Prepaid" {
-				// try to add tag and shutdown
-				client.WithBccClient(func(bccClient *bcc.Client) (interface{}, error) {
-					return nil, bccClient.StopInstance(instanceId, true)
-				})
-				bindTagsRequest := &api.BindTagsRequest{
-					ChangeTags: []model.TagModel{
-						model.TagModel{
-							TagKey:   "terminated",
-							TagValue: "true",
-						},
-					},
+				deletePrepaidIntance = true
+				// delete instance
+				args := &api.DeletePrepaidInstanceWithRelateResourceArgs{}
+				if v, ok := d.GetOk("related_release_flag"); ok {
+					args.RelatedReleaseFlag = v.(bool)
 				}
-				_, err := client.WithBccClient(func(bccClient *bcc.Client) (interface{}, error) {
-					return nil, bccClient.BindInstanceToTags(instanceId, bindTagsRequest)
+				if v, ok := d.GetOk("delete_cds_snapshot_flag"); ok {
+					args.DeleteCdsSnapshotFlag = v.(bool)
+				}
+				args.DeleteRelatedEnisFlag = true
+				args.InstanceId = instanceId
+				err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+					raw, err := client.WithBccClient(func(bccClient *bcc.Client) (interface{}, error) {
+						return instanceId, bccClient.DeletePrepaidInstanceWithRelateResource(args)
+					})
+					if err != nil {
+						if IsExceptedErrors(err, []string{ReleaseWhileCreating, bce.EINTERNAL_ERROR}) {
+							return resource.RetryableError(err)
+						}
+						return resource.NonRetryableError(err)
+					}
+					addDebug(action, raw)
+					return nil
 				})
 				if err != nil {
+					if IsExceptedErrors(err, BccNotFound) {
+						return nil
+					}
 					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_instance", action, BCESDKGoERROR)
-				} else {
-					return nil
 				}
 			}
 		}
 	}
-	// delete instance
-	args := &api.DeleteInstanceWithRelateResourceArgs{}
-	if v, ok := d.GetOk("related_release_flag"); ok {
-		args.RelatedReleaseFlag = v.(bool)
-	}
-	if v, ok := d.GetOk("delete_cds_snapshot_flag"); ok {
-		args.DeleteCdsSnapshotFlag = v.(bool)
-	}
-	err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
-		raw, err := client.WithBccClient(func(bccClient *bcc.Client) (interface{}, error) {
-			return instanceId, bccClient.DeleteInstanceWithRelateResource(instanceId, args)
+	if !deletePrepaidIntance {
+		// delete postpaid instance
+		args := &api.DeleteInstanceWithRelateResourceArgs{}
+		if v, ok := d.GetOk("related_release_flag"); ok {
+			args.RelatedReleaseFlag = v.(bool)
+		}
+		if v, ok := d.GetOk("delete_cds_snapshot_flag"); ok {
+			args.DeleteCdsSnapshotFlag = v.(bool)
+		}
+		err := resource.Retry(d.Timeout(schema.TimeoutDelete), func() *resource.RetryError {
+			raw, err := client.WithBccClient(func(bccClient *bcc.Client) (interface{}, error) {
+				return instanceId, bccClient.DeleteInstanceWithRelateResource(instanceId, args)
+			})
+			if err != nil {
+				if IsExceptedErrors(err, []string{ReleaseWhileCreating, bce.EINTERNAL_ERROR}) {
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			addDebug(action, raw)
+			return nil
 		})
 		if err != nil {
-			if IsExceptedErrors(err, []string{ReleaseWhileCreating, bce.EINTERNAL_ERROR}) {
-				return resource.RetryableError(err)
+			if IsExceptedErrors(err, BccNotFound) {
+				return nil
 			}
-			return resource.NonRetryableError(err)
+			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_instance", action, BCESDKGoERROR)
 		}
-		addDebug(action, raw)
-		return nil
-	})
-	if err != nil {
-		if IsExceptedErrors(err, BccNotFound) {
-			return nil
-		}
-		return WrapErrorf(err, DefaultErrorMsg, "baiducloud_instance", action, BCESDKGoERROR)
 	}
 
 	stateConf := buildStateConf(
-		[]string{string(api.InstanceStatusStopping), string(api.InstanceStatusStopped)},
-		[]string{string(api.InstanceStatusDeleted)},
+		[]string{string(api.InstanceStatusStopping), string(api.InstanceStatusRunning), string(api.InstanceStatusExpired), string(api.InstanceStatusStopped)},
+		[]string{string(api.InstanceStatusDeleted), string(api.InstanceStatusRecycled)},
 		d.Timeout(schema.TimeoutDelete),
 		bccService.InstanceStateRefresh(instanceId),
 	)
