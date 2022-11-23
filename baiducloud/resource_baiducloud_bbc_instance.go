@@ -148,6 +148,11 @@ func resourceBaiduCloudBbcInstance() *schema.Resource {
 				Optional:    true,
 				Sensitive:   true,
 			},
+			"keypair_id": {
+				Type:        schema.TypeString,
+				Description: "keypair id used for the instance to be started. ",
+				Optional:    true,
+			},
 			"cpu_count": {
 				Type:        schema.TypeInt,
 				Description: "Number of CPU cores to be created for the instance.",
@@ -582,6 +587,9 @@ func buildBaiduCloudBbcInstanceArgs(d *schema.ResourceData, meta interface{}) (*
 	if adminPass, ok := d.GetOk("admin_pass"); ok {
 		request.AdminPass = adminPass.(string)
 	}
+	if keypairId, ok := d.GetOk("keypair_id"); ok {
+		request.KeypairId = keypairId.(string)
+	}
 	if rootDiskSizeInGb, ok := d.GetOk("root_disk_size_in_gb"); ok {
 		request.RootDiskSizeInGb = rootDiskSizeInGb.(int)
 	}
@@ -694,13 +702,13 @@ func updateBbcInstanceImage(d *schema.ResourceData, meta interface{}, instanceID
 		if adminPass, ok := d.GetOk("admin_pass"); ok {
 			args.AdminPass = adminPass.(string)
 		}
-		if d.HasChange("raid_id") || d.HasChange("root_disk_size_in_gb") {
-			args.IsPreserveData = false
-			args.RaidId = d.Get("raid_id").(string)
-			args.SysRootSize = d.Get("root_disk_size_in_gb").(int)
-		} else {
-			args.IsPreserveData = true
+		if keypairId, ok := d.GetOk("keypair_id"); ok {
+			args.KeypairId = keypairId.(string)
 		}
+		// the data can not be preserved
+		args.IsPreserveData = false
+		args.RaidId = d.Get("raid_id").(string)
+		args.SysRootSize = d.Get("root_disk_size_in_gb").(int)
 		if _, err := client.WithBbcClient(func(bbcClient *bbc.Client) (i interface{}, e error) {
 			return nil, bbcClient.RebuildInstance(instanceID, args.IsPreserveData, args)
 		}); err != nil {
@@ -716,14 +724,7 @@ func updateBbcInstanceImage(d *schema.ResourceData, meta interface{}, instanceID
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, "baiducloud_bbc_instance", action, BCESDKGoERROR)
 		}
-
 		d.SetPartial("image_id")
-		d.SetPartial("admin_pass")
-		if !args.IsPreserveData {
-			d.SetPartial("raid_id")
-			d.SetPartial("root_disk_size_in_gb")
-		}
-
 	}
 
 	return nil
