@@ -217,6 +217,11 @@ func setRepicaV1(d *schema.ResourceData, meta interface{}, client *connectivity.
 
 func setRepicaV2(d *schema.ResourceData, meta interface{}, client *connectivity.BaiduClient) error {
 	clusterId := d.Get("cluster_id")
+	groupIdObj, isOk := d.GetOk("instance_group_id")
+	groupIdStr := ""
+	if isOk {
+		groupIdStr = groupIdObj.(string)
+	}
 	ccev2Service := Ccev2Service{client}
 	bccService := BccService{client}
 	if !strings.HasPrefix(clusterId.(string), "cce-") {
@@ -235,12 +240,12 @@ func setRepicaV2(d *schema.ResourceData, meta interface{}, client *connectivity.
 				},
 			}
 			action := "Update CCEv2 Cluster Instance Group Repica "
-			groups, err := ccev2Service.GetInstanceGroupList(clusterId.(string), change.(int))
+			groups, err := ccev2Service.GetInstanceGroupList(clusterId.(string), groupIdStr, change.(int))
 			if err != nil {
 				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
 			}
 			if len(groups) == 0 {
-				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, "Instance Group is empty or can not be used!")
+				return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, "Instance Group is empty or can not be used!input Group ID is "+groupIdStr)
 			}
 			args.InstanceGroupID = groups[0].Spec.CCEInstanceGroupID
 			args.Request.Replicas = groups[0].Spec.Replicas + change.(int)

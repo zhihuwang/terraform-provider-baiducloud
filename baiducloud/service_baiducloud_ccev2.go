@@ -49,7 +49,7 @@ func (s *Ccev2Service) ClusterStateRefreshCCEv2(clusterId string, failState []cc
 	}
 }
 
-func (s *Ccev2Service) GetInstanceGroupList(cluster_id string, left_nodes int) ([]*ccev2.InstanceGroup, error) {
+func (s *Ccev2Service) GetInstanceGroupList(cluster_id string, groupId string, left_nodes int) ([]*ccev2.InstanceGroup, error) {
 	args := &ccev2.ListInstanceGroupsArgs{}
 	args.ClusterID = cluster_id
 	listOpts := &ccev2.InstanceGroupListOption{}
@@ -71,7 +71,7 @@ func (s *Ccev2Service) GetInstanceGroupList(cluster_id string, left_nodes int) (
 		log.Printf("List InstanceGroup Instances Error:" + err.Error())
 		return nil, WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_instance_groups", action, BCESDKGoERROR)
 	}
-	groups := getAvailableInstanceGroup(response.Page.List, types.ClusterRoleNode, left_nodes)
+	groups := getAvailableInstanceGroup(response.Page.List, types.ClusterRoleNode, left_nodes, groupId)
 	return groups, nil
 }
 func (s *Ccev2Service) GetInstanceGroupDetail(clusterId string, instanceGroupId string) (*ccev2.InstanceGroup, error) {
@@ -1228,6 +1228,18 @@ func resourceCCEv2InstanceResource() *schema.Resource {
 				Optional:    true,
 				Computed:    true,
 			},
+			"machine_spec": {
+				Type:        schema.TypeString,
+				Description: "Machine Spec eg: bcc.g5.c16m64",
+				Optional:    true,
+				Computed:    true,
+			},
+			"spec_id": {
+				Type:        schema.TypeString,
+				Description: "Machine Spec type, eg: g5",
+				Optional:    true,
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -1640,13 +1652,19 @@ func buildGetInstancesOfInstanceGroupArgs(d *schema.ResourceData) (*ccev2.ListIn
 	}
 	return args, nil
 }
-func getAvailableInstanceGroup(instanceGroups []*ccev2.InstanceGroup, role ccev2types.ClusterRole, left_nodes int) []*ccev2.InstanceGroup {
+func getAvailableInstanceGroup(instanceGroups []*ccev2.InstanceGroup, role ccev2types.ClusterRole, left_nodes int, groupId string) []*ccev2.InstanceGroup {
 	targetInstanceGroups := make([]*ccev2.InstanceGroup, 0)
 	//区分是master机器还是node机器
 	for _, instanceGroup := range instanceGroups {
 		if instanceGroup.Spec.ClusterRole == role && instanceGroup.Spec.Replicas+left_nodes <= 200 {
 			//log.Printf("group->%s->%s", instanceGroup.Spec.CCEInstanceGroupID, instanceGroup.CreatedAt.Format(time.RFC3339))
-			targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
+			if groupId != "" && len(groupId) > 3 {
+				if instanceGroup.Spec.CCEInstanceGroupID == groupId {
+					targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
+				}
+			} else {
+				targetInstanceGroups = append(targetInstanceGroups, instanceGroup)
+			}
 		}
 	}
 	// sort with createdAt asc
@@ -3213,6 +3231,14 @@ func buildInstanceResource(d map[string]interface{}) (*ccev2types.InstanceResour
 
 	if v, ok := d["gpu_count"]; ok {
 		instanceResource.GPUCount = v.(int)
+	}
+
+	if v, ok := d["machine_spec"]; ok {
+		instanceResource.MachineSpec = v.(string)
+	}
+
+	if v, ok := d["spec_id"]; ok {
+		instanceResource.SpecId = v.(string)
 	}
 
 	return instanceResource, nil
