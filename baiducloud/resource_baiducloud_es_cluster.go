@@ -259,7 +259,7 @@ func resourceBaiduCloudESClusterDelete(d *schema.ResourceData, meta interface{})
 			"Audit_stopping",
 			"Audit_stopped",
 		},
-		[]string{"Deleted"},
+		[]string{"Deleted", "OrderFailed"},
 		d.Timeout(schema.TimeoutDelete),
 		besService.ClusterStateRefreshes(clusterId, []string{
 			"Failed",
