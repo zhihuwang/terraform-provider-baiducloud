@@ -55,6 +55,11 @@ func resourceBaiduCloudCCEv2InstanceGroupReplica() *schema.Resource {
 				ForceNew:    true,
 				Required:    true,
 			},
+			"group_id": {
+				Type:        schema.TypeString,
+				Description: "ID of Instance Group, the group id will be used for scale",
+				Optional:    true,
+			},
 			"replicas_change": {
 				Type:        schema.TypeInt,
 				Description: "Number of instances in this Instance Group",
@@ -217,7 +222,7 @@ func setRepicaV1(d *schema.ResourceData, meta interface{}, client *connectivity.
 
 func setRepicaV2(d *schema.ResourceData, meta interface{}, client *connectivity.BaiduClient) error {
 	clusterId := d.Get("cluster_id")
-	groupIdObj, isOk := d.GetOk("instance_group_id")
+	groupIdObj, isOk := d.GetOk("group_id")
 	groupIdStr := ""
 	if isOk {
 		groupIdStr = groupIdObj.(string)
@@ -249,7 +254,9 @@ func setRepicaV2(d *schema.ResourceData, meta interface{}, client *connectivity.
 			}
 			args.InstanceGroupID = groups[0].Spec.CCEInstanceGroupID
 			args.Request.Replicas = groups[0].Spec.Replicas + change.(int)
-
+			if args.Request.Replicas < 0 {
+				return WrapErrorf(fmt.Errorf("replicas should gt 0"), DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
+			}
 			_, err = client.WithCCEv2Client(func(client *ccev2.Client) (interface{}, error) {
 				return client.UpdateInstanceGroupReplicas(args)
 			})
@@ -268,6 +275,9 @@ func setRepicaV2(d *schema.ResourceData, meta interface{}, client *connectivity.
 					return WrapErrorf(err, DefaultErrorMsg, "baiducloud_ccev2_cluster_replica", action, BCESDKGoERROR)
 				}
 				if instanceGroupResp.Status.ReadyReplicas == instanceGroupResp.Spec.Replicas {
+					if newNodeSize <= 0 {
+						break
+					}
 					instancesResponse, err := ccev2Service.GetInstanceGroupInstances(&ccev2.ListInstanceByInstanceGroupIDArgs{
 						ClusterID:       args.ClusterID,
 						InstanceGroupID: args.InstanceGroupID,
