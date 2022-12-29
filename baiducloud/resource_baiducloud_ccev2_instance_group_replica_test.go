@@ -17,7 +17,7 @@ func testV2Group(t *testing.T) {
 	}
 	client, _ := config.Client()
 	ccev2Service := Ccev2Service{client}
-	groups, err := ccev2Service.GetInstanceGroupList("cce-**", 1)
+	groups, err := ccev2Service.GetInstanceGroupList("cce-**", "", 1)
 	log.Printf("err=%v", err)
 	data, _ := json.MarshalIndent(groups, " ", " ")
 	log.Printf("groups=%s", string(data))

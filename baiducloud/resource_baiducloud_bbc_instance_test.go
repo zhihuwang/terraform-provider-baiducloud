@@ -1,6 +1,7 @@
 package baiducloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -60,6 +61,14 @@ func testSweepBbcInstances(region string) error {
 	}
 
 	return nil
+}
+func TestMarshall(t *testing.T) {
+	abc := &bbc.CreateInstanceArgs{
+		ClientToken:   buildClientToken(),
+		PurchaseCount: 1,
+	}
+	v, _ := json.MarshalIndent(abc, " ", " ")
+	fmt.Print(string(v))
 }
 
 //lintignore:AT003
